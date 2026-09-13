@@ -4,7 +4,7 @@
 
 **MoonBit-dialect [ASGI 3.0](https://asgi.readthedocs.io/) — the load-bearing server↔app SEAM.**
 
-[![Check and Test](https://github.com/Lfan-ke/moonasgi/actions/workflows/ci.yml/badge.svg)](https://github.com/Lfan-ke/moonasgi/actions/workflows/ci.yml)
+[![Check and Test](https://github.com/moonbitstack/moonasgi/actions/workflows/ci.yml/badge.svg)](https://github.com/moonbitstack/moonasgi/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
 [![mooncakes](https://img.shields.io/badge/mooncakes-Lfan--ke%2Fmoonasgi-brightgreen)](https://mooncakes.io/docs/Lfan-ke/moonasgi)
 
@@ -213,11 +213,11 @@ Both directions of disconnection are modelled. The receive side has always been 
 
 The seam is the only thing the server and the frameworks share. Each binds to a specific slice of it.
 
-**[mooncat](https://github.com/Lfan-ke/mooncat)** — the ASGI server. Owns the async `Receive` / `Send` and the native transport, binds `AsgiApp`, and drives every core: it drains the http request body, runs `run_lifespan` at boot and teardown, and drives WebSocket connections. It copies `LifespanScope.state` onto each `HttpScope.state`, serialises the outbound `Event` stream (`HttpResponseStart` / `HttpResponseBody` / `HttpResponseTrailers` / the extension messages) to the socket, and can run `validate_events` over an app's emissions to reject a buggy app before writing. It owns both halves of the disconnection contract above: raising `ClientDisconnected` out of its `send` once the peer is gone, and catching what the app raises — a `ClientDisconnected` it logs, anything else out of a lifespan scope it reads as "this app has no lifespan".
+**[mooncat](https://github.com/moonbitstack/mooncat)** — the ASGI server. Owns the async `Receive` / `Send` and the native transport, binds `AsgiApp`, and drives every core: it drains the http request body, runs `run_lifespan` at boot and teardown, and drives WebSocket connections. It copies `LifespanScope.state` onto each `HttpScope.state`, serialises the outbound `Event` stream (`HttpResponseStart` / `HttpResponseBody` / `HttpResponseTrailers` / the extension messages) to the socket, and can run `validate_events` over an app's emissions to reject a buggy app before writing. It owns both halves of the disconnection contract above: raising `ClientDisconnected` out of its `send` once the peer is gone, and catching what the app raises — a `ClientDisconnected` it logs, anything else out of a lifespan scope it reads as "this app has no lifespan".
 
-**[moonapi](https://github.com/Lfan-ke/moonapi)** — the web framework. Binds at the scope level through `run_http_scoped`, because it reads what the ergonomic `Request` drops: `HttpScope.root_path` (mounted sub-apps), `extensions` (gate a response push or path-send on what the server advertises), `client` (security), and `state` (the lifespan-seeded pool / config). It returns `Response` and `StreamingResponse`, serves its OpenAPI document as an ordinary response, and registers `LifespanHandler` startup / shutdown hooks that mooncat runs.
+**[moonapi](https://github.com/moonbitstack/moonapi)** — the web framework. Binds at the scope level through `run_http_scoped`, because it reads what the ergonomic `Request` drops: `HttpScope.root_path` (mounted sub-apps), `extensions` (gate a response push or path-send on what the server advertises), `client` (security), and `state` (the lifespan-seeded pool / config). It returns `Response` and `StreamingResponse`, serves its OpenAPI document as an ordinary response, and registers `LifespanHandler` startup / shutdown hooks that mooncat runs.
 
-**[moonzero](https://github.com/Lfan-ke/moonzero)** — the service assembler. Stacks its middleware (request-id, CORS, logging, recovery) as `Middleware` values and folds them over a `Handler` with `compose`, outermost-first.
+**[moonzero](https://github.com/moonbitstack/moonzero)** — the service assembler. Stacks its middleware (request-id, CORS, logging, recovery) as `Middleware` values and folds them over a `Handler` with `compose`, outermost-first.
 
 The `greet: *` whitebox tests assemble a representative app across all three shapes and drive it through these exact seam points, so the seam is proven greet-ready before any consuming repo is wired up.
 

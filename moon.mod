@@ -1,10 +1,10 @@
 name = "Lfan-ke/moonasgi"
 
-version = "0.8.0"
+version = "0.8.1"
 
 readme = "README.md"
 
-repository = "https://github.com/Lfan-ke/moonasgi"
+repository = "https://github.com/moonbitstack/moonasgi"
 
 license = "Apache-2.0"
 
