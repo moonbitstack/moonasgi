@@ -13,8 +13,7 @@ test "from_h2_headers decodes path and keeps raw_path as sent" {
     Err(_) => fail("the request target should have produced a scope")
   }
   assert_eq(scope.path, "/files/a/b/café")
-  // An h2 server has the undecoded target in hand, so it fills raw_path in.
-  assert_eq(scope.raw_path, Some(b"/files/a%2Fb/caf%C3%A9"))
+  assert_eq(scope.raw_path, b"/files/a%2Fb/caf%C3%A9")
   // The query string stays raw: ASGI hands it over undecoded.
   assert_eq(scope.query_string, b"q=%20x")
 }

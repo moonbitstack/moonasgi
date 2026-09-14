@@ -21,5 +21,5 @@ test "ASGI 3.0 conformance harness is all-green" {
 /// fails this rather than leaving the documentation quietly wrong.
 test "the conformance harness runs the number of checks the README claims" {
   let report = run_conformance()
-  assert_eq(report.total, 443)
+  assert_eq(report.total, 436)
 }

@@ -9,11 +9,8 @@
 
 ///|
 /// The asynchronous instance a legacy app's first callable returns: already bound to
-/// the scope, it drives the connection with `receive` / `send`. It raises on the same
-/// terms as `AsgiApp` — a `ClientDisconnected` out of `send`, or its own error to
-/// decline the scope — since it is the half of the legacy convention that does the
-/// work.
-pub type AsgiAppInstance = async (Receive, Send) -> Unit raise Error
+/// the scope, it drives the connection with `receive` / `send`.
+pub type AsgiAppInstance = async (Receive, Send) -> Unit
 
 ///|
 /// A legacy ASGI 2.0 double-callable application: a synchronous `application(scope)`

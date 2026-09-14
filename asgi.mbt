@@ -30,7 +30,8 @@ pub fn AsgiVersion::default() -> AsgiVersion {
 /// The HTTP handshake: protocol `3.0`, HTTP sub-spec `2.5` — the www sub-spec's
 /// current revision, whose own history runs 2.1 websocket accept `headers`, 2.2 a
 /// `None` server port, 2.3 a websocket close `reason`, 2.4 `send()` raising on a
-/// closed connection (`ClientDisconnected`), 2.5 a websocket disconnect `reason`.
+/// closed connection, 2.5 a websocket disconnect `reason`. Of those, 2.4 is the one
+/// this seam cannot express: see the note in the README.
 pub fn AsgiVersion::http() -> AsgiVersion {
   { version: "3.0", spec_version: "2.5", }
 }
@@ -219,19 +220,15 @@ pub fn Extensions::with_tls(
 ///|
 /// HTTP connection scope (ASGI `type == "http"`). `raw_path` / `query_string`
 /// stay `Bytes` because they are not guaranteed valid UTF-8; header names follow
-/// ASGI's lowercased-latin1 convention. `raw_path` is optional in the spec and so
-/// here: `Some` when the server kept the undecoded target bytes, `None` when it
-/// did not, which is not the same claim as "they happen to equal `path`". A router
-/// that cares where `%2F` sat reads it and has to handle its absence.
-/// `asgi` carries the version handshake, `extensions` the advertised server
-/// capabilities, and `state` is per-connection scratch copied from the lifespan
-/// state.
+/// ASGI's lowercased-latin1 convention. `asgi` carries the version handshake,
+/// `extensions` the advertised server capabilities, and `state` is
+/// per-connection scratch copied from the lifespan state.
 pub(all) struct HttpScope {
   http_version : String
   http_method : String
   scheme : String
   path : String
-  raw_path : Bytes?
+  raw_path : Bytes
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
@@ -245,11 +242,9 @@ pub(all) struct HttpScope {
 ///|
 /// Build an `HttpScope` with ASGI's usual defaults filled in — `http_version`
 /// `"1.1"`, `scheme` `"http"`, empty query/headers/state, the default `asgi`
-/// handshake, and no extensions. `raw_path` stays `None` unless the caller passes
-/// it: the spec defaults it to `None`, and synthesising it from `path` would tell
-/// an application the server kept bytes it never saw. The ergonomic constructor
-/// servers and the `TestClient` build scopes through, so callers spell only what
-/// differs from the common case.
+/// handshake, and no extensions. `raw_path` defaults to the UTF-8 encoding of
+/// `path`. The ergonomic constructor servers and the `TestClient` build scopes
+/// through, so callers spell only what differs from the common case.
 pub fn HttpScope::new(
   http_method~ : String,
   path~ : String,
@@ -270,7 +265,7 @@ pub fn HttpScope::new(
     http_method,
     scheme,
     path,
-    raw_path,
+    raw_path: raw_path.unwrap_or(@utf8.encode(path)),
     query_string,
     root_path,
     headers,
@@ -284,15 +279,13 @@ pub fn HttpScope::new(
 
 ///|
 /// WebSocket connection scope (ASGI `type == "websocket"`). `scheme` is
-/// `"ws"`/`"wss"`; `subprotocols` are the client-offered values. `raw_path` is
-/// optional for the same reason as on an http scope — `None` says the server did
-/// not keep the undecoded target. Carries the same `asgi` handshake and
-/// `extensions` capabilities as an http scope.
+/// `"ws"`/`"wss"`; `subprotocols` are the client-offered values. Carries the
+/// same `asgi` handshake and `extensions` capabilities as an http scope.
 pub(all) struct WebSocketScope {
   http_version : String
   scheme : String
   path : String
-  raw_path : Bytes?
+  raw_path : Bytes
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
@@ -307,8 +300,8 @@ pub(all) struct WebSocketScope {
 ///|
 /// Build a `WebSocketScope` with ASGI's usual defaults filled in — `scheme`
 /// `"ws"`, empty query/headers/subprotocols/state, the default `asgi`
-/// handshake, and no extensions. `raw_path` stays `None` unless the caller passes
-/// it.
+/// handshake, and no extensions. `raw_path` defaults to the UTF-8 encoding of
+/// `path`.
 pub fn WebSocketScope::new(
   path~ : String,
   http_version? : String = "1.1",
@@ -328,7 +321,7 @@ pub fn WebSocketScope::new(
     http_version,
     scheme,
     path,
-    raw_path,
+    raw_path: raw_path.unwrap_or(@utf8.encode(path)),
     query_string,
     root_path,
     headers,
@@ -435,82 +428,16 @@ pub(all) enum Event {
 } derive(Eq)
 
 ///|
-/// The peer is gone. A server raises this out of `send` when the connection the
-/// event would be written to has already closed — the www sub-spec has required
-/// `send()` to raise a server-specific error since `spec_version` 2.4, and on this
-/// seam that error is this one.
-///
-/// What a server owes an application: raise it from the first `send` after the
-/// client disconnects, and from every `send` after that, so an application that
-/// ignores it cannot keep writing into nothing. What an application owes a server:
-/// either let it propagate — nothing it emits can arrive any more — or catch it,
-/// release what the request held, and return. It is not an application error and a
-/// server does not answer 500 to it; the response is already over.
-pub(all) suberror ClientDisconnected
-
-///|
 /// Pull the next inbound event. The async awaitable an application calls to read
-/// request body chunks, websocket frames, or lifespan signals. It carries no
-/// declared error: ASGI reports a peer that went away *inbound* as an event —
-/// `HttpDisconnect` or `WebSocketDisconnect` — so a server answers a `receive` on a
-/// dead connection with that event rather than by failing the call.
+/// request body chunks, websocket frames, or lifespan signals.
 pub type Receive = async () -> Event
 
 ///|
-/// Push an outbound event, raising `ClientDisconnected` when the peer is gone —
-/// the send-side half of the contract the www sub-spec has pinned since 2.4. The
-/// async awaitable an application calls to emit response start/body, websocket
-/// frames, or lifespan completion. The declared error is exhaustive: a server may
-/// signal a dead peer this way and nothing else.
-pub type Send = async (Event) -> Unit raise ClientDisconnected
+/// Push an outbound event. The async awaitable an application calls to emit
+/// response start/body, websocket frames, or lifespan completion.
+pub type Send = async (Event) -> Unit
 
 ///|
 /// The load-bearing ASGI callable: `(scope, receive, send)`. Every server binds
 /// to this shape and every framework in the suite ultimately compiles down to it.
-///
-/// It may raise, for the two reasons the spec allows. A `ClientDisconnected` on its
-/// way out of `send` means the connection ended under the application; a server
-/// logs it and moves on. Any other error is the application declining or failing
-/// the scope — raising out of the callable is how ASGI has an application say "I do
-/// not support lifespan", so a server that catches one from a lifespan scope runs
-/// the rest of its life without lifespan, while the same error from an http or
-/// websocket scope is a 500.
-pub type AsgiApp = async (Scope, Receive, Send) -> Unit raise Error
-
-///|
-/// The synchronous mirror of `Send`: take one outbound event, raise
-/// `ClientDisconnected` when the peer is gone. It exists for the reason
-/// `run_legacy` does — this package has no async runtime, so the send-side
-/// contract is proven through its sans-transport twin, and a framework built on the
-/// seam can drive its disconnect handling the same way on every backend.
-pub type Sink = (Event) -> Unit raise ClientDisconnected
-
-///|
-/// The synchronous mirror of `AsgiApp`: the same three arguments with an already
-/// materialised inbound stream in place of `Receive` and a `Sink` in place of
-/// `Send`, and the same freedom to raise — a `ClientDisconnected` on its way out of
-/// the sink, or the application's own error declining the scope.
-pub type SyncApp = (Scope, Array[Event], Sink) -> Unit raise
-
-///|
-/// Drive a synchronous application and report whether it handled the scope.
-/// `false` means it raised out of the callable: from a lifespan scope that is
-/// ASGI's "I do not support lifespan" and a server carries on without lifespan;
-/// from an http or websocket scope it is an application error and a server answers
-/// 500. A `ClientDisconnected` is not the application failing but the peer leaving,
-/// so it propagates to the caller instead of being reported as one — the same split
-/// a server makes when it drives the async `AsgiApp`.
-pub fn run_sync_app(
-  app : SyncApp,
-  scope : Scope,
-  inbound : Array[Event],
-  sink : Sink,
-) -> Bool raise ClientDisconnected {
-  try {
-    app(scope, inbound, sink)
-    true
-  } catch {
-    ClientDisconnected => raise ClientDisconnected
-    _ => false
-  }
-}
+pub type AsgiApp = async (Scope, Receive, Send) -> Unit

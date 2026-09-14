@@ -16,12 +16,6 @@ pub fn ConformanceReport::ok(self : ConformanceReport) -> Bool {
 }
 
 ///|
-/// The harness's stand-in for whatever an application raises to decline a scope.
-/// ASGI names no error for "I do not support lifespan" — the mechanism is the act
-/// of raising — so the harness supplies one to raise.
-priv suberror LifespanUnsupported
-
-///|
 /// One of each `Event` variant, distinct payloads — the table the harness folds
 /// over to prove `Event`'s derived equality discriminates every message in the
 /// http / websocket / lifespan sets in both directions (no two variants collapse).
@@ -170,7 +164,7 @@ pub fn run_conformance() -> ConformanceReport {
     hs.path == "/deep" &&
     hs.http_version == "2" &&
     hs.scheme == "https" &&
-    hs.raw_path == Some(b"/deep") &&
+    hs.raw_path == b"/deep" &&
     hs.query_string == b"k=v" &&
     hs.root_path == "/api" &&
     hs.headers == [("host", "h")] &&
@@ -202,18 +196,6 @@ pub fn run_conformance() -> ConformanceReport {
     wss.subprotocols == ["chat", "json"] &&
     wss.extensions.websocket_http_response &&
     wss.asgi.spec_version == "2.5",
-  )
-  // `raw_path` is optional in the spec: absent unless the server kept the
-  // undecoded target, and never invented from `path`.
-  check(
-    "scope/raw-path-absent",
-    HttpScope::new(http_method="GET", path="/a/b").raw_path is None &&
-    WebSocketScope::new(path="/a/b").raw_path is None,
-  )
-  check(
-    "scope/raw-path-given",
-    WebSocketScope::new(path="/a/b", raw_path=b"/a%2Fb").raw_path ==
-    Some(b"/a%2Fb"),
   )
   let ls = LifespanScope::new(state=Map([("boot", true.to_json())]))
   check(
@@ -676,7 +658,7 @@ pub fn run_conformance() -> ConformanceReport {
         s.scheme == "https" &&
         s.http_version == "2" &&
         s.path == "/items" &&
-        s.raw_path == Some(b"/items") &&
+        s.raw_path == b"/items" &&
         s.query_string == b"page=2&q=x" &&
         s.asgi.spec_version == "2.5" &&
         // :authority becomes the leading host header; pseudo-headers are gone.
@@ -883,62 +865,6 @@ pub fn run_conformance() -> ConformanceReport {
   check(
     "stream/terminates-once",
     streamed[streamed.length() - 1] is HttpResponseBody(more_body=false, ..),
-  )
-
-  // U. the send-side contract the www sub-spec has pinned since 2.4: a send that
-  //    finds the peer gone raises, the raise reaches whoever drove the app, and the
-  //    events queued behind it are never offered.
-  let refused : Array[Event] = []
-  let gone : Sink = ev => {
-    refused.push(ev)
-    if refused.length() == 2 {
-      raise ClientDisconnected
-    }
-  }
-  let chunked = [
-    ok_start,
-    HttpResponseBody(body=b"first", more_body=true),
-    ok_body,
-  ]
-  let writer : SyncApp = (_sc, _inb, sink) => {
-    for ev in chunked {
-      sink(ev)
-    }
-  }
-  let propagated = try {
-    let _ = run_sync_app(writer, hscope, [], gone)
-    false
-  } catch {
-    ClientDisconnected => true
-  }
-  check("send/raise-propagates", propagated)
-  check("send/stops-at-refusal", refused.length() == 2)
-  let taken : Array[Event] = []
-  let alive : Sink = ev => taken.push(ev)
-  let ran_to_end = run_sync_app(writer, hscope, [], alive) catch {
-    ClientDisconnected => false
-  }
-  check("send/delivers-while-open", ran_to_end && taken.length() == 3)
-
-  // V. an application declining a scope: ASGI's way of saying "I do not support
-  //    lifespan" is an error out of the callable, which a server has to tell from
-  //    an application that ran the phase and replied.
-  let boot_seen : Array[Event] = []
-  let boot_sink : Sink = ev => boot_seen.push(ev)
-  let declining : SyncApp = (_sc, _inb, _sink) => raise LifespanUnsupported
-  let answering : SyncApp = (_sc, _inb, sink) => sink(LifespanStartupComplete)
-  let declined = try
-    !run_sync_app(declining, lscope, [LifespanStartup], boot_sink)
-  catch {
-    ClientDisconnected => false
-  }
-  check("app/declines-lifespan", declined)
-  let answered = run_sync_app(answering, lscope, [LifespanStartup], boot_sink) catch {
-    ClientDisconnected => false
-  }
-  check(
-    "app/handles-lifespan",
-    answered && boot_seen == [LifespanStartupComplete],
   )
 
   let failures : Array[String] = []

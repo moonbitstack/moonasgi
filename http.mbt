@@ -333,9 +333,7 @@ pub fn run_http_stream(
 /// single `HttpResponseBody`. Non-http scopes (websocket, lifespan) are no-ops:
 /// this sugar covers request→response handlers only. Shares its drain, request
 /// assembly, and response serialisation with `run_http`, which tests the same
-/// logic without the async transport. A `ClientDisconnected` out of `send`
-/// propagates: the handler has already run and there is nothing left to write, so
-/// there is nothing this wrapper could usefully do with it.
+/// logic without the async transport.
 pub fn to_asgi(handler : Handler) -> AsgiApp {
   (scope, receive, send) => {
     match scope {

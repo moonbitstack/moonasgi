@@ -1,5 +1,0 @@
-import {
-  "Lfan-ke/moonasgi",
-}
-
-pkgtype(kind: "executable")

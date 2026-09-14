@@ -32,11 +32,9 @@ pub enum Scope {
   Lifespan(LifespanScope)
 }
 
-pub suberror ClientDisconnected               // the peer is gone
-
-pub type Receive = async () -> Event                              // pull the next inbound event
-pub type Send    = async (Event) -> Unit raise ClientDisconnected  // push an outbound event
-pub type AsgiApp = async (Scope, Receive, Send) -> Unit raise Error
+pub type Receive = async () -> Event          // pull the next inbound event
+pub type Send    = async (Event) -> Unit      // push an outbound event
+pub type AsgiApp = async (Scope, Receive, Send) -> Unit
 ```
 
 Applications are usually written against the ergonomic sugar, which the server lifts onto `AsgiApp`:
@@ -124,7 +122,7 @@ A malformed pseudo-header set — a missing required one, a duplicate, an unknow
 
 ## Conformance
 
-`run_conformance()` is a table-driven harness. Every `Event` variant is checked for round-trip fidelity and for being distinct from every other one; the http, websocket and lifespan scopes and their ordering rules are driven through `run_http` / `ws_run` / `TestClient`. The out-of-band extension messages — push, pathsend, zero-copy send, debug, disconnect — are covered by the ordering tables rather than by a driver, since no driver emits them. The send-side contract has its own table: a `Sink` that raises `ClientDisconnected` mid-stream, and an application that declines a lifespan scope, both driven through `run_sync_app`. It returns a `ConformanceReport` naming any failing check, so a downstream server can self-verify the seam wiring:
+`run_conformance()` is a table-driven harness. Every `Event` variant is checked for round-trip fidelity and for being distinct from every other one; the http, websocket and lifespan scopes and their ordering rules are driven through `run_http` / `ws_run` / `TestClient`. The out-of-band extension messages — push, pathsend, zero-copy send, debug, disconnect — are covered by the ordering tables rather than by a driver, since no driver emits them. It returns a `ConformanceReport` naming any failing check, so a downstream server can self-verify the seam wiring:
 
 ```moonbit
 let report = run_conformance()
@@ -137,22 +135,6 @@ The harness also runs a **negative table**: ASGI pins the order an app may emit 
 let bad = [HttpResponseBody(body=b"x", more_body=false)]  // no start
 assert_eq(validate_events(scope, bad) == Some(BodyBeforeStart), true)
 ```
-
-## Disconnection
-
-A connection can end under an application mid-response, and ASGI has both sides say so in different ways. Inbound it is an event — `receive` yields `HttpDisconnect` or `WebSocketDisconnect` — which is why `Receive` carries no declared error. Outbound it is an error: the www sub-spec has required since `spec_version` 2.4 that `send()` raise on a closed connection, and on this seam that error is `ClientDisconnected`.
-
-**What a server owes an application.** Raise `ClientDisconnected` from the first `send` after the peer goes away and from every `send` after that, so an application that ignores the first one cannot keep writing into nothing. The declared error is exhaustive — a server signals a dead peer this way and nothing else. And catch what comes out of the application: a `ClientDisconnected` means the response was already over, while any other error is the application declining or failing the scope. From a lifespan scope that is ASGI's "I do not support lifespan", and the server runs the rest of its life without lifespan; from an http or websocket scope it is a 500.
-
-**What an application owes a server.** Either let `ClientDisconnected` propagate — nothing it emits can arrive any more — or catch it, release what the request held, and return. It is not an application error and must not be reported as one. To decline a scope it does not implement, raise out of the callable: that is the only way ASGI gives an application to say so.
-
-`run_sync_app` is the sans-transport mirror of exactly that split, and exists for the reason `run_legacy` does — this package has no async runtime, so the contract is proven against a `Sink` (the synchronous `Send`) and a `SyncApp` (the synchronous `AsgiApp`), which is also how a framework on the seam can drive its own disconnect handling on every backend.
-
-```moonbit
-let handled = run_sync_app(app, scope, inbound, sink)  // false: the app declined the scope
-```
-
-`raw_path` is optional the same way and for the same reason — honesty about what the server actually has. It is `Bytes?`, `None` unless the server kept the undecoded target, so an application can tell "no raw path here" from bytes that happen to equal `path`. A server that has them (`HttpScope::from_h2_headers` does) passes them in.
 
 ## Extensions & streaming
 
@@ -176,9 +158,6 @@ Every ASGI 3.0 spec feature, and the test that exercises it. `conformance` is `r
 | Spec feature | Modelled as | Covered by |
 |---|---|---|
 | `http` scope (all fields incl. `state`, `raw_path`, `root_path`) | `HttpScope` | `conformance` scope/http-fields |
-| optional `raw_path` (`None` when the server did not keep it) | `HttpScope.raw_path` / `WebSocketScope.raw_path` | `conformance` scope/raw-path-*; test "raw_path is None unless the server set it" |
-| `send()` raises on a closed connection (www 2.4) | `ClientDisconnected` on `Send` / `Sink` | `conformance` send/*; test "a send that raises propagates to the caller" |
-| Application declines a scope (ASGI's "I do not support lifespan") | raising out of `AsgiApp` / `run_sync_app` | `conformance` app/*; test "an app that raises out of a lifespan scope is distinguishable from one that returns" |
 | `websocket` scope (incl. `subprotocols`, `state`) | `WebSocketScope` | `conformance` scope/ws-fields |
 | `lifespan` scope (incl. `state`) | `LifespanScope` | `conformance` scope/lifespan-fields |
 | `asgi` version / `spec_version` (2.5 http+ws, 2.0 lifespan) | `AsgiVersion` | `conformance` spec_version/*; test "per-subprotocol asgi spec_version defaults" |
@@ -205,15 +184,13 @@ Every ASGI 3.0 spec feature, and the test that exercises it. `conformance` is `r
 | HTTP/2·3 pseudo-header → scope lowering (`:method`/`:scheme`/`:authority`/`:path`, host synthesis, malformed rejection) | `HttpScope::from_h2_headers` / `Http2HeaderError` | `conformance` h2/* |
 | `http_version` transport-agnostic seam (`"1.1"` / `"2"` / `"3"`) | `HttpScope.http_version` | `conformance` h2/seam-agnostic |
 
-One spec feature has no direct model here: the C-level file object in `http.response.zerocopysend` is carried as an `Int` fd, because this seam is socket-free by design and the actual `sendfile` is the server adapter's (`mooncat`) job.
-
-Both directions of disconnection are modelled. The receive side has always been — `run_http_scoped_drain` hands the app a `Drain` saying whether the client went away mid-body — and the send side is `Send`'s declared `ClientDisconnected`, the www sub-spec's 2.4 requirement. The async callables cannot be *driven* in this package, which has no runtime by design, so their contract is type-checked here and exercised through the synchronous `Sink` / `SyncApp` mirror; driving the real async pair is `mooncat`'s job.
+Two spec features have no direct model here. The C-level file object in `http.response.zerocopysend` is carried as an `Int` fd, because this seam is socket-free by design and the actual `sendfile` is the server adapter's (`mooncat`) job. And `send()` cannot raise on a closed connection, which the www sub-spec has required since version 2.4: `Send` is declared `async (Event) -> Unit`, so a server has no in-band way to tell an application the client went away mid-response. A body drain reports it — `run_http_scoped_drain` hands the app a `Drain` saying whether the client disconnected — but the send path does not.
 
 ## Consumed by
 
 The seam is the only thing the server and the frameworks share. Each binds to a specific slice of it.
 
-**[mooncat](https://github.com/moonbitstack/mooncat)** — the ASGI server. Owns the async `Receive` / `Send` and the native transport, binds `AsgiApp`, and drives every core: it drains the http request body, runs `run_lifespan` at boot and teardown, and drives WebSocket connections. It copies `LifespanScope.state` onto each `HttpScope.state`, serialises the outbound `Event` stream (`HttpResponseStart` / `HttpResponseBody` / `HttpResponseTrailers` / the extension messages) to the socket, and can run `validate_events` over an app's emissions to reject a buggy app before writing. It owns both halves of the disconnection contract above: raising `ClientDisconnected` out of its `send` once the peer is gone, and catching what the app raises — a `ClientDisconnected` it logs, anything else out of a lifespan scope it reads as "this app has no lifespan".
+**[mooncat](https://github.com/moonbitstack/mooncat)** — the ASGI server. Owns the async `Receive` / `Send` and the native transport, binds `AsgiApp`, and drives every core: it drains the http request body, runs `run_lifespan` at boot and teardown, and drives WebSocket connections. It copies `LifespanScope.state` onto each `HttpScope.state`, serialises the outbound `Event` stream (`HttpResponseStart` / `HttpResponseBody` / `HttpResponseTrailers` / the extension messages) to the socket, and can run `validate_events` over an app's emissions to reject a buggy app before writing.
 
 **[moonapi](https://github.com/moonbitstack/moonapi)** — the web framework. Binds at the scope level through `run_http_scoped`, because it reads what the ergonomic `Request` drops: `HttpScope.root_path` (mounted sub-apps), `extensions` (gate a response push or path-send on what the server advertises), `client` (security), and `state` (the lifespan-seeded pool / config). It returns `Response` and `StreamingResponse`, serves its OpenAPI document as an ordinary response, and registers `LifespanHandler` startup / shutdown hooks that mooncat runs.
 
@@ -228,7 +205,7 @@ The `greet: *` whitebox tests assemble a representative app across all three sha
 
 ## Status
 
-`v0` — the SEAM (`Scope`, `Event`, `Receive`/`Send`/`AsgiApp` with `ClientDisconnected`, `Request`/`Response`, `Handler`/`Middleware`) plus the full ASGI-extension event set (push, pathsend, zero-copy send, trailers, early hints, debug, WebSocket denial, TLS), `StreamingResponse` response streaming, the synchronous `run_http`, `run_http_scoped`, `run_lifespan`, `ws_run` and `run_sync_app` cores, the `TestClient` in-process driver for both HTTP and WebSocket, the `run_conformance` round-trip harness (443 checks) with its `validate_events` ordering table, `HttpScope::from_h2_headers` HTTP/2·3 pseudo-header lowering, and typed `Extensions`/`tls`/`spec_version` (2.5) scope metadata — 55 tests, warning-clean across every backend. The async `Handler → AsgiApp` runtime adapter lands with `mooncat`, which owns the native async transport.
+`v0` — the SEAM (`Scope`, `Event`, `Receive`/`Send`/`AsgiApp`, `Request`/`Response`, `Handler`/`Middleware`) plus the full ASGI-extension event set (push, pathsend, zero-copy send, trailers, early hints, debug, WebSocket denial, TLS), `StreamingResponse` response streaming, the synchronous `run_http`, `run_http_scoped`, `run_lifespan`, and `ws_run` cores, the `TestClient` in-process driver for both HTTP and WebSocket, the `run_conformance` round-trip harness (436 checks) with its `validate_events` ordering table, `HttpScope::from_h2_headers` HTTP/2·3 pseudo-header lowering, and typed `Extensions`/`tls`/`spec_version` (2.5) scope metadata — 51 tests, warning-clean across every backend. The async `Handler → AsgiApp` runtime adapter lands with `mooncat`, which owns the native async transport.
 
 ## License
 

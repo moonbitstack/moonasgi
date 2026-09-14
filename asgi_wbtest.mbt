@@ -73,7 +73,7 @@ test "run_http drains a chunked body, runs the handler, emits start+body" {
     http_method: "POST",
     scheme: "http",
     path: "/echo",
-    raw_path: Some(b"/echo"),
+    raw_path: b"/echo",
     query_string: b"a=1",
     root_path: "",
     headers: [("content-type", "text/plain")],
@@ -135,7 +135,7 @@ test "to_asgi matches run_http and drives receive/send in order" {
     http_method: "PUT",
     scheme: "http",
     path: "/p",
-    raw_path: Some(b"/p"),
+    raw_path: b"/p",
     query_string: b"",
     root_path: "",
     headers: [],
@@ -174,7 +174,7 @@ test "SEAM scope and event variants construct" {
     http_method: "GET",
     scheme: "http",
     path: "/",
-    raw_path: Some(b"/"),
+    raw_path: b"/",
     query_string: b"",
     root_path: "",
     headers: [],
@@ -188,7 +188,7 @@ test "SEAM scope and event variants construct" {
     http_version: "1.1",
     scheme: "ws",
     path: "/ws",
-    raw_path: Some(b"/ws"),
+    raw_path: b"/ws",
     query_string: b"",
     root_path: "",
     headers: [],
@@ -241,108 +241,4 @@ test "SEAM scope and event variants construct" {
   assert_eq(events.length(), 25)
   assert_eq(Event::HttpDisconnect == Event::HttpDisconnect, true)
   assert_eq(events[0] == Event::HttpRequest(body=b"", more_body=false), true)
-}
-
-///|
-/// The send-side half of the contract the www sub-spec has pinned since 2.4, through
-/// the synchronous mirror this package can drive: a sink that finds the peer gone
-/// raises, the raise reaches the caller, and the events queued behind it never go
-/// out. Against a peer that is still there the same app sends all three.
-test "a send that raises propagates to the caller" {
-  let offered : Array[Event] = []
-  let gone : Sink = ev => {
-    offered.push(ev)
-    if offered.length() == 2 {
-      raise ClientDisconnected
-    }
-  }
-  let app : SyncApp = (_scope, _inbound, sink) => {
-    sink(HttpResponseStart(status=200, headers=[], trailers=false))
-    sink(HttpResponseBody(body=b"first", more_body=true))
-    sink(HttpResponseBody(body=b"second", more_body=false))
-  }
-  let scope = Scope::Http(HttpScope::new(http_method="GET", path="/"))
-  let propagated = try {
-    let _ = run_sync_app(app, scope, [], gone)
-    false
-  } catch {
-    ClientDisconnected => true
-  }
-  assert_eq(propagated, true)
-  assert_eq(offered.length(), 2)
-  let taken : Array[Event] = []
-  let alive : Sink = ev => taken.push(ev)
-  let handled = run_sync_app(app, scope, [], alive) catch {
-    ClientDisconnected => false
-  }
-  assert_eq(handled, true)
-  assert_eq(taken.length(), 3)
-}
-
-///|
-/// ASGI's mechanism for "I do not support lifespan" is raising out of the callable,
-/// so a server has to tell that from an application that ran the phase and replied.
-/// A `ClientDisconnected` is neither: it is the peer leaving, and it propagates
-/// instead of being reported as the application declining.
-test "an app that raises out of a lifespan scope is distinguishable from one that returns" {
-  let scope = Scope::Lifespan(LifespanScope::new())
-  let seen : Array[Event] = []
-  let sink : Sink = ev => seen.push(ev)
-  let declining : SyncApp = (_scope, _inbound, _sink) => {
-    raise LifespanUnsupported
-  }
-  let answering : SyncApp = (_scope, _inbound, s) => s(LifespanStartupComplete)
-  let declined = run_sync_app(declining, scope, [LifespanStartup], sink) catch {
-    ClientDisconnected => true
-  }
-  assert_eq(declined, false)
-  assert_eq(seen.length(), 0)
-  let answered = run_sync_app(answering, scope, [LifespanStartup], sink) catch {
-    ClientDisconnected => false
-  }
-  assert_eq(answered, true)
-  assert_eq(seen.length() == 1 && seen[0] == LifespanStartupComplete, true)
-  // The peer leaving is not the application declining, so it does not answer false.
-  let dead : Sink = _ev => raise ClientDisconnected
-  let disconnected = try {
-    let _ = run_sync_app(answering, scope, [LifespanStartup], dead)
-    false
-  } catch {
-    ClientDisconnected => true
-  }
-  assert_eq(disconnected, true)
-}
-
-///|
-/// The async surface cannot be driven here — this package has no runtime, which is
-/// the point of the seam — but its error contract still type-checks, and that is
-/// what a server binds to: a `Send` may raise `ClientDisconnected` and nothing
-/// else, an `AsgiApp` may let it out, and an `AsgiApp` may swallow it instead.
-test "the async send contract type-checks" {
-  let sends : Array[Send] = [_ev => raise ClientDisconnected]
-  let propagating : AsgiApp = (_scope, _receive, send) => send(HttpDisconnect)
-  let swallowing : AsgiApp = (_scope, _receive, send) => {
-    send(HttpDisconnect) catch {
-      ClientDisconnected => ()
-    }
-  }
-  assert_eq(sends.length(), 1)
-  assert_eq([propagating, swallowing].length(), 2)
-}
-
-///|
-/// `raw_path` is optional in the spec, so `None` is the honest default: it says the
-/// server did not keep the undecoded target, which is a different claim from the
-/// bytes happening to equal `path`.
-test "raw_path is None unless the server set it" {
-  assert_eq(HttpScope::new(http_method="GET", path="/a/b").raw_path, None)
-  assert_eq(WebSocketScope::new(path="/a/b").raw_path, None)
-  assert_eq(
-    HttpScope::new(http_method="GET", path="/a/b", raw_path=b"/a%2Fb").raw_path,
-    Some(b"/a%2Fb"),
-  )
-  assert_eq(
-    WebSocketScope::new(path="/a/b", raw_path=b"/a%2Fb").raw_path,
-    Some(b"/a%2Fb"),
-  )
 }

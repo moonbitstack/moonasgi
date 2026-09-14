@@ -8,9 +8,9 @@ import {
 // Values
 pub fn compose(Array[((Request) -> Response) -> (Request) -> Response], (Request) -> Response) -> (Request) -> Response
 
-pub fn double_to_single_callable((Scope) -> async (async () -> Event, async (Event) -> Unit raise ClientDisconnected) -> Unit) -> async (Scope, async () -> Event, async (Event) -> Unit raise ClientDisconnected) -> Unit
+pub fn double_to_single_callable((Scope) -> async (async () -> Event, async (Event) -> Unit) -> Unit) -> async (Scope, async () -> Event, async (Event) -> Unit) -> Unit
 
-pub fn guarantee_single_callable(AsgiApplication) -> async (Scope, async () -> Event, async (Event) -> Unit raise ClientDisconnected) -> Unit
+pub fn guarantee_single_callable(AsgiApplication) -> async (Scope, async () -> Event, async (Event) -> Unit) -> Unit
 
 pub fn headers_from_wire(Array[(Bytes, Bytes)]) -> Array[(String, String)]
 
@@ -38,9 +38,7 @@ pub fn run_legacy((Scope) -> (Array[Event]) -> Array[Event], Scope, Array[Event]
 
 pub fn run_lifespan(LifespanHandler, Scope, Array[Event]) -> Array[Event]
 
-pub fn run_sync_app((Scope, Array[Event], (Event) -> Unit raise ClientDisconnected) -> Unit raise, Scope, Array[Event], (Event) -> Unit raise ClientDisconnected) -> Bool raise ClientDisconnected
-
-pub fn to_asgi((Request) -> Response) -> async (Scope, async () -> Event, async (Event) -> Unit raise ClientDisconnected) -> Unit
+pub fn to_asgi((Request) -> Response) -> async (Scope, async () -> Event, async (Event) -> Unit) -> Unit
 
 pub fn validate_events(Scope, Array[Event]) -> EventOrderError?
 
@@ -57,12 +55,11 @@ pub fn ws_run(WebSocketHandler, Scope, Array[Event]) -> Array[Event]
 pub fn ws_run_app((WebSocketScope, Array[Event]) -> Array[Event], Scope, Array[Event]) -> Array[Event]
 
 // Errors
-pub(all) suberror ClientDisconnected
 
 // Types and methods
 pub(all) enum AsgiApplication {
-  Single(async (Scope, async () -> Event, async (Event) -> Unit raise ClientDisconnected) -> Unit)
-  Legacy((Scope) -> async (async () -> Event, async (Event) -> Unit raise ClientDisconnected) -> Unit)
+  Single(async (Scope, async () -> Event, async (Event) -> Unit) -> Unit)
+  Legacy((Scope) -> async (async () -> Event, async (Event) -> Unit) -> Unit)
 }
 
 pub(all) struct AsgiVersion {
@@ -185,7 +182,7 @@ pub(all) struct HttpScope {
   http_method : String
   scheme : String
   path : String
-  raw_path : Bytes?
+  raw_path : Bytes
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
@@ -315,7 +312,7 @@ pub(all) struct WebSocketScope {
   http_version : String
   scheme : String
   path : String
-  raw_path : Bytes?
+  raw_path : Bytes
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
@@ -366,24 +363,20 @@ pub(all) struct ZeroCopySend {
 } derive(Eq)
 
 // Type aliases
-pub type AsgiApp = async (Scope, async () -> Event, async (Event) -> Unit raise ClientDisconnected) -> Unit
+pub type AsgiApp = async (Scope, async () -> Event, async (Event) -> Unit) -> Unit
 
-pub type AsgiAppInstance = async (async () -> Event, async (Event) -> Unit raise ClientDisconnected) -> Unit
+pub type AsgiAppInstance = async (async () -> Event, async (Event) -> Unit) -> Unit
 
 pub type Handler = (Request) -> Response
 
-pub type LegacyAsgiApp = (Scope) -> async (async () -> Event, async (Event) -> Unit raise ClientDisconnected) -> Unit
+pub type LegacyAsgiApp = (Scope) -> async (async () -> Event, async (Event) -> Unit) -> Unit
 
 pub type Middleware = ((Request) -> Response) -> (Request) -> Response
 
 pub type Receive = async () -> Event
 
-pub type Send = async (Event) -> Unit raise ClientDisconnected
-
-pub type Sink = (Event) -> Unit raise ClientDisconnected
+pub type Send = async (Event) -> Unit
 
 pub type StreamHandler = (Request) -> StreamingResponse
-
-pub type SyncApp = (Scope, Array[Event], (Event) -> Unit raise ClientDisconnected) -> Unit raise
 
 // Traits
