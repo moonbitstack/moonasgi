@@ -1,0 +1,64 @@
+name: Release
+
+# A version tag publishes this module to mooncakes under the moonbitstack account. Publishing is
+# opt-in: the publish job runs only while the organization (or repository) variable
+# MOONCAKES_PUBLISH is 'true', so a tag with the switch off only runs the tests.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: install moonbit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: test
+        run: |
+          moon update
+          moon check --target all --deny-warn
+          moon test --target all
+
+  publish:
+    needs: test
+    if: vars.MOONCAKES_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    environment: mooncakes
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: install moonbit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: check tag and namespace
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' moon.mod)"
+          grep -q '^name = "moonbitstack/' moon.mod || { echo "::error::moon.mod is not under moonbitstack"; exit 1; }
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "${GITHUB_REF_NAME##*v}" != "$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match moon.mod version $version"; exit 1
+          fi
+
+      - name: publish
+        env:
+          CREDENTIALS: ${{ secrets.MOONCAKES_CREDENTIALS }}
+        run: |
+          if [ -z "$CREDENTIALS" ]; then echo "::error::MOONCAKES_CREDENTIALS is not available"; exit 1; fi
+          trap 'rm -f ~/.moon/credentials.json' EXIT
+          printf '%s' "$CREDENTIALS" > ~/.moon/credentials.json
+          moon update
+          moon publish

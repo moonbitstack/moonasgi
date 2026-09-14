@@ -6,9 +6,11 @@
 
 [![Check and Test](https://github.com/moonbitstack/moonasgi/actions/workflows/ci.yml/badge.svg)](https://github.com/moonbitstack/moonasgi/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
-[![mooncakes](https://img.shields.io/badge/mooncakes-Lfan--ke%2Fmoonasgi-brightgreen)](https://mooncakes.io/docs/Lfan-ke/moonasgi)
+[![mooncakes](https://img.shields.io/badge/mooncakes-Lfan--ke%2Fmoonasgi-brightgreen)](https://mooncakes.io/docs/moonbitstack/moonasgi)
 
 </div>
+
+> Moved on mooncakes from `Lfan-ke/moonasgi` to `moonbitstack/moonasgi`.
 
 `moonasgi` is the backend-agnostic protocol seam every server and framework in the **moon\*** full-stack suite is built around. One typed contract — `Scope` / `Receive` / `Send` — isolates async-transport churn in a single server adapter, so the framework repos (`moonapi`, `moonorm`, `moonrpc`, `moongql`, `moonzero`) never depend on `moonbitlang/async` directly.
 
