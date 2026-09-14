@@ -1,4 +1,4 @@
-name = "Lfan-ke/moonasgi"
+name = "moonbitstack/moonasgi"
 
 version = "0.8.1"
 
