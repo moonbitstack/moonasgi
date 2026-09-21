@@ -1,0 +1,10 @@
+// HTTP 作用域的接缝：请求与响应、处理器与中间件的类型，以及流式响应。
+//
+// 规范：https://asgi.readthedocs.io/en/latest/specs/www.html
+import {
+  "moonbitstack/moonasgi/spec",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+} for "test"

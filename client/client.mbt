@@ -91,7 +91,8 @@ pub fn TestResponse::json(self : TestResponse) -> Json raise {
 /// `HttpResponseEarlyHint` records one `103` message's `Link` values. Other
 /// events (websocket, lifespan) are ignored — the http response is what a client
 /// observes.
-fn reassemble(events : Array[Event]) -> TestResponse {
+/// 把一串事件拼回一个响应，一致性套件与测试客户端共用。
+pub fn reassemble(events : Array[@spec.Event]) -> TestResponse {
   let mut status = 0
   let mut headers : Array[(String, String)] = []
   let buf = Buffer()
@@ -137,45 +138,45 @@ fn reassemble(events : Array[Event]) -> TestResponse {
 
 ///|
 /// An in-process application driver — the ASGI `TestClient` — built on the
-/// synchronous `run_http_app` core, so it needs no socket and runs on every
+/// synchronous `@http.run_http_app` core, so it needs no socket and runs on every
 /// backend. It builds a synthetic http scope, feeds the request body in as
 /// `HttpRequest` events, runs the application, and reassembles the outbound
 /// stream into a `TestResponse`. `app` is the event-emitting application; the
-/// `new` / `from_stream` constructors adapt a `Handler` / `StreamHandler`.
+/// `new` / `from_stream` constructors adapt a `@http.Handler` / `@http.StreamHandler`.
 pub(all) struct TestClient {
-  app : (Request) -> Array[Event]
+  app : (@http.Request) -> Array[@spec.Event]
   root_path : String
   base_headers : Array[(String, String)]
   client : (String, Int)?
   server : (String, Int?)?
-  extensions : Extensions
+  extensions : @spec.Extensions
 }
 
 ///|
 /// Build a `TestClient` from a raw event-emitting application (the shape
-/// `run_http_app` drives). Defaults mirror a typical test harness: empty
+/// `@http.run_http_app` drives). Defaults mirror a typical test harness: empty
 /// `root_path`, no base headers, a `("testclient", 50000)` client peer, a
 /// `("testserver", 80)` server, and no advertised extensions.
 pub fn TestClient::from_app(
-  app : (Request) -> Array[Event],
+  app : (@http.Request) -> Array[@spec.Event],
   root_path? : String = "",
   base_headers? : Array[(String, String)] = [],
   client? : (String, Int)? = Some(("testclient", 50000)),
   server? : (String, Int?)? = Some(("testserver", Some(80))),
-  extensions? : Extensions = Extensions::none(),
+  extensions? : @spec.Extensions = @spec.Extensions::none(),
 ) -> TestClient {
   { app, root_path, base_headers, client, server, extensions, }
 }
 
 ///|
-/// Build a `TestClient` from a unary `Handler`.
+/// Build a `TestClient` from a unary `@http.Handler`.
 pub fn TestClient::new(
-  handler : Handler,
+  handler : @http.Handler,
   root_path? : String = "",
   base_headers? : Array[(String, String)] = [],
   client? : (String, Int)? = Some(("testclient", 50000)),
   server? : (String, Int?)? = Some(("testserver", Some(80))),
-  extensions? : Extensions = Extensions::none(),
+  extensions? : @spec.Extensions = @spec.Extensions::none(),
 ) -> TestClient {
   TestClient::from_app(
     fn(req) { handler(req).events() },
@@ -188,15 +189,15 @@ pub fn TestClient::new(
 }
 
 ///|
-/// Build a `TestClient` from a streaming `StreamHandler` (multi-chunk body,
+/// Build a `TestClient` from a streaming `@http.StreamHandler` (multi-chunk body,
 /// optional trailers).
 pub fn TestClient::from_stream(
-  handler : StreamHandler,
+  handler : @http.StreamHandler,
   root_path? : String = "",
   base_headers? : Array[(String, String)] = [],
   client? : (String, Int)? = Some(("testclient", 50000)),
   server? : (String, Int?)? = Some(("testserver", Some(80))),
-  extensions? : Extensions = Extensions::none(),
+  extensions? : @spec.Extensions = @spec.Extensions::none(),
 ) -> TestClient {
   TestClient::from_app(
     fn(req) { handler(req).events() },
@@ -206,31 +207,19 @@ pub fn TestClient::from_stream(
     server~,
     extensions~,
   )
-}
-
-///|
-/// Split a request target into its path and raw query string on the first `?`;
-/// `"/a/b?x=1&y=2"` → `("/a/b", "x=1&y=2")`, `"/a/b"` → `("/a/b", "")`.
-fn split_target(target : String) -> (String, String) {
-  for i in 0..<target.length() {
-    if target[i].to_int() == 63 {
-      return (target[0:i].to_owned(), target[i + 1:].to_owned())
-    }
-  }
-  (target, "")
 }
 
 ///|
 /// Materialise a request body into inbound `HttpRequest` events. When `chunks`
 /// is given each element becomes its own event (`more_body: true` on all but the
 /// last), exercising a streamed request; otherwise `body` is a single event.
-fn body_events(body : Bytes, chunks : Array[Bytes]?) -> Array[Event] {
+fn body_events(body : Bytes, chunks : Array[Bytes]?) -> Array[@spec.Event] {
   match chunks {
     Some(cs) =>
       if cs.length() == 0 {
         [HttpRequest(body=b"", more_body=false)]
       } else {
-        let out : Array[Event] = []
+        let out : Array[@spec.Event] = []
         for i = 0; i < cs.length(); i = i + 1 {
           out.push(HttpRequest(body=cs[i], more_body=i != cs.length() - 1))
         }
@@ -256,8 +245,8 @@ pub fn TestClient::request(
   http_version? : String = "1.1",
   chunks? : Array[Bytes],
 ) -> TestResponse {
-  let (p, q) = split_target(path)
-  let scope = HttpScope::new(
+  let (p, q) = @spec.split_target(path)
+  let scope = @spec.HttpScope::new(
     http_method~,
     path=p,
     http_version~,
@@ -268,7 +257,9 @@ pub fn TestClient::request(
     server=self.server,
     extensions=self.extensions,
   )
-  reassemble(run_http_app(self.app, Http(scope), body_events(body, chunks)))
+  reassemble(
+    @http.run_http_app(self.app, Http(scope), body_events(body, chunks)),
+  )
 }
 
 ///|
@@ -345,7 +336,7 @@ pub(all) struct WsTestSession {
   accepted : Bool
   subprotocol : String?
   accept_headers : Array[(String, String)]
-  messages : Array[WsMessage]
+  messages : Array[@ws.WsMessage]
   closed : Bool
   close_code : Int?
   close_reason : String?
@@ -385,11 +376,11 @@ pub fn WsTestSession::texts(self : WsTestSession) -> Array[String] {
 /// `WebSocketClose` records the close, and a `WebSocketHttpResponseStart` +
 /// `WebSocketHttpResponseBody` pair reconstructs the denial HTTP response. Other
 /// events are ignored.
-fn reassemble_ws(events : Array[Event]) -> WsTestSession {
+fn reassemble_ws(events : Array[@spec.Event]) -> WsTestSession {
   let mut accepted = false
   let mut subprotocol : String? = None
   let mut accept_headers : Array[(String, String)] = []
-  let messages : Array[WsMessage] = []
+  let messages : Array[@ws.WsMessage] = []
   let mut closed = false
   let mut close_code : Int? = None
   let mut close_reason : String? = None
@@ -453,8 +444,11 @@ fn reassemble_ws(events : Array[Event]) -> WsTestSession {
 /// hands a WebSocket app: a leading `WebSocketConnect`, one `WebSocketReceive`
 /// per message (text or binary), and a terminating `WebSocketDisconnect` when a
 /// `disconnect` code is given.
-fn ws_inbound(messages : Array[WsMessage], disconnect : Int?) -> Array[Event] {
-  let out : Array[Event] = [WebSocketConnect]
+fn ws_inbound(
+  messages : Array[@ws.WsMessage],
+  disconnect : Int?,
+) -> Array[@spec.Event] {
+  let out : Array[@spec.Event] = [WebSocketConnect]
   for m in messages {
     match m {
       Text(t) => out.push(WebSocketReceive(text=Some(t), bytes=None))
@@ -469,7 +463,7 @@ fn ws_inbound(messages : Array[WsMessage], disconnect : Int?) -> Array[Event] {
 }
 
 ///|
-/// Build the synthetic `WebSocketScope` the WebSocket driver runs against: the
+/// Build the synthetic `@spec.WebSocketScope` the WebSocket driver runs against: the
 /// path/query split off `path`, the client's `base_headers` merged before the
 /// per-connection `headers`, the offered `subprotocols`, the websocket `asgi`
 /// handshake (sub-spec `2.5`), and the client's `root_path` / peers / advertised
@@ -479,9 +473,9 @@ fn TestClient::ws_scope(
   path : String,
   headers : Array[(String, String)],
   subprotocols : Array[String],
-) -> WebSocketScope {
-  let (p, q) = split_target(path)
-  WebSocketScope::new(
+) -> @spec.WebSocketScope {
+  let (p, q) = @spec.split_target(path)
+  @spec.WebSocketScope::new(
     path=p,
     query_string=@utf8.encode(q),
     root_path=self.root_path,
@@ -489,46 +483,62 @@ fn TestClient::ws_scope(
     client=self.client,
     server=self.server,
     subprotocols~,
-    asgi=AsgiVersion::websocket(),
+    asgi=@spec.AsgiVersion::websocket(),
     extensions=self.extensions,
   )
 }
 
 ///|
-/// Drive a `WebSocketHandler` through a full connection in-process and capture
+/// Drive a `@ws.WebSocketHandler` through a full connection in-process and capture
 /// the result. Opens a `WebSocketConnect`, feeds each `send` message in as a
 /// `WebSocketReceive`, then (unless `disconnect` is `None`) a
 /// `WebSocketDisconnect` with the given close code, runs the handler through the
-/// synchronous `ws_run` core, and reassembles the server's outbound frames into a
+/// synchronous `@ws.ws_run` core, and reassembles the server's outbound frames into a
 /// `WsTestSession`. No socket — testable on every backend, the WebSocket
 /// counterpart of `request`.
 pub fn TestClient::websocket(
   self : TestClient,
   path~ : String,
-  handler~ : WebSocketHandler,
-  send? : Array[WsMessage] = [],
+  handler~ : @ws.WebSocketHandler,
+  send? : Array[@ws.WsMessage] = [],
   headers? : Array[(String, String)] = [],
   subprotocols? : Array[String] = [],
   disconnect? : Int? = Some(1000),
 ) -> WsTestSession {
   let scope = self.ws_scope(path, headers, subprotocols)
-  reassemble_ws(ws_run(handler, WebSocket(scope), ws_inbound(send, disconnect)))
+  reassemble_ws(
+    @ws.ws_run(handler, WebSocket(scope), ws_inbound(send, disconnect)),
+  )
 }
 
 ///|
-/// Drive a general `(WebSocketScope, Array[Event]) -> Array[Event]` application
+/// Drive a general `(@spec.WebSocketScope, Array[@spec.Event]) -> Array[@spec.Event]` application
 /// through a full connection in-process. Like `websocket`, but for an app that
-/// consumes the whole inbound stream directly (the `ws_run_app` escape hatch)
+/// consumes the whole inbound stream directly (the `@ws.ws_run_app` escape hatch)
 /// rather than the connect/receive/disconnect fold.
 pub fn TestClient::websocket_app(
   self : TestClient,
   path~ : String,
-  app~ : (WebSocketScope, Array[Event]) -> Array[Event],
-  send? : Array[WsMessage] = [],
+  app~ : (@spec.WebSocketScope, Array[@spec.Event]) -> Array[@spec.Event],
+  send? : Array[@ws.WsMessage] = [],
   headers? : Array[(String, String)] = [],
   subprotocols? : Array[String] = [],
   disconnect? : Int? = Some(1000),
 ) -> WsTestSession {
   let scope = self.ws_scope(path, headers, subprotocols)
-  reassemble_ws(ws_run_app(app, WebSocket(scope), ws_inbound(send, disconnect)))
+  reassemble_ws(
+    @ws.ws_run_app(app, WebSocket(scope), ws_inbound(send, disconnect)),
+  )
 }
+
+///|
+pub extend PushPromise with Eq::{not_equal, equal}
+
+///|
+pub extend ZeroCopySend with Eq::{not_equal, equal}
+
+///|
+pub extend TestResponse with Eq::{not_equal, equal}
+
+///|
+pub extend WsTestSession with Eq::{not_equal, equal}

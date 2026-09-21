@@ -2,7 +2,7 @@
 
 ///|
 test "select_subprotocol: first client-offered the server supports, in client order; None when disjoint" {
-  let scope = WebSocketScope::new(path="/ws", subprotocols=[
+  let scope = @spec.WebSocketScope::new(path="/ws", subprotocols=[
     "chat", "superchat", "json",
   ])
   // The client offers chat, superchat, json; the server supports superchat + json.
@@ -13,5 +13,8 @@ test "select_subprotocol: first client-offered the server supports, in client or
   // No overlap: no subprotocol.
   assert_eq(scope.select_subprotocol(["binary"]), None)
   // No offers at all: no subprotocol.
-  assert_eq(WebSocketScope::new(path="/ws").select_subprotocol(["chat"]), None)
+  assert_eq(
+    @spec.WebSocketScope::new(path="/ws").select_subprotocol(["chat"]),
+    None,
+  )
 }

@@ -41,15 +41,14 @@ fn main {
   //    server also supports.
   let echo = @moonasgi.WebSocketHandler::new(
     on_connect=fn(s) {
-      @moonasgi.Accept(
-        subprotocol=s.select_subprotocol(["chat.v2", "chat.v1"]),
-        headers=[("x-ws", "ok")],
-      )
+      @ws.Accept(subprotocol=s.select_subprotocol(["chat.v2", "chat.v1"]), headers=[
+        ("x-ws", "ok"),
+      ])
     },
     on_receive=fn(m) {
       match m {
-        @moonasgi.Text(t) => [@moonasgi.SendText("echo:" + t)]
-        @moonasgi.Binary(b) => [@moonasgi.SendBinary(b)]
+        @ws.Text(t) => [@ws.SendText("echo:" + t)]
+        @ws.Binary(b) => [@ws.SendBinary(b)]
       }
     },
   )
@@ -57,7 +56,7 @@ fn main {
     path="/ws",
     handler=echo,
     subprotocols=["chat.v1", "chat.v3"],
-    send=[@moonasgi.Text("emm"), @moonasgi.Text("hhh")],
+    send=[@ws.Text("emm"), @ws.Text("hhh")],
   )
   println(
     "echo: accepted=\{s.accepted} subprotocol=\{opt(s.subprotocol)} x-ws=\{opt(s.header("x-ws"))}",
@@ -66,18 +65,16 @@ fn main {
 
   // 2. Reject the handshake with a bare close code.
   let reject = @moonasgi.WebSocketHandler::new(on_connect=fn(_s) {
-    @moonasgi.Reject(code=4403, reason="forbidden")
+    @ws.Reject(code=4403, reason="forbidden")
   })
-  let sr = c.websocket(path="/ws", handler=reject, send=[
-    @moonasgi.Text("ignored"),
-  ])
+  let sr = c.websocket(path="/ws", handler=reject, send=[@ws.Text("ignored")])
   println(
     "reject: accepted=\{sr.accepted} closed=\{sr.closed} code=\{opt_int(sr.close_code)}",
   )
 
   // 3. Deny the handshake with a full HTTP response (websocket.http.response).
   let deny = @moonasgi.WebSocketHandler::new(on_connect=fn(_s) {
-    @moonasgi.DenyHttp(status=401, headers=[("x-why", "auth")], body=b"denied")
+    @ws.DenyHttp(status=401, headers=[("x-why", "auth")], body=b"denied")
   })
   let sd = c.websocket(path="/ws", handler=deny)
   match sd.denial {
@@ -92,9 +89,9 @@ fn main {
       @moonasgi.WebSocketScope::new(path="/ws", subprotocols=["chat.v1"]),
     ),
     [
-      @moonasgi.WebSocketConnect,
-      @moonasgi.WebSocketReceive(text=Some("qwq"), bytes=None),
-      @moonasgi.WebSocketDisconnect(code=1000, reason=None),
+      @spec.WebSocketConnect,
+      @spec.WebSocketReceive(text=Some("qwq"), bytes=None),
+      @spec.WebSocketDisconnect(code=1000, reason=None),
     ],
   )
   let ws_ok = @moonasgi.validate_ws_response(raw) is None
@@ -105,13 +102,13 @@ fn main {
     path="/ws",
     app=fn(scope, inbound) {
       [
-        @moonasgi.WebSocketAccept(subprotocol=scope.subprotocols.get(0), headers=[
+        @spec.WebSocketAccept(subprotocol=scope.subprotocols.get(0), headers=[
           ("x-frames", inbound.length().to_string()),
         ]),
       ]
     },
     subprotocols=["v1"],
-    send=[@moonasgi.Text("a"), @moonasgi.Text("b")],
+    send=[@ws.Text("a"), @ws.Text("b")],
     disconnect=None,
   )
   println(

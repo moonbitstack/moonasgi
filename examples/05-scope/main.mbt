@@ -47,13 +47,13 @@ fn main {
   )
   // The body arrives as two frames; run_http_scoped drains them before the app.
   let out = @moonasgi.run_http_scoped(app, scope, [
-    @moonasgi.HttpRequest(body=b"heke", more_body=true),
-    @moonasgi.HttpRequest(body=b"1228", more_body=false),
+    @spec.HttpRequest(body=b"heke", more_body=true),
+    @spec.HttpRequest(body=b"1228", more_body=false),
   ])
   for ev in out {
     match ev {
-      @moonasgi.HttpResponseStart(status~, ..) => println("start -> \{status}")
-      @moonasgi.HttpResponseBody(body~, ..) =>
+      @spec.HttpResponseStart(status~, ..) => println("start -> \{status}")
+      @spec.HttpResponseBody(body~, ..) =>
         println("body  -> " + @moonasgi.latin1_decode(body))
       _ => ()
     }
@@ -64,7 +64,7 @@ fn main {
       @moonasgi.Response::text("via Request: \{req.http_method} \{req.path}").events()
     },
     scope,
-    [@moonasgi.HttpRequest(body=b"", more_body=false)],
+    [@spec.HttpRequest(body=b"", more_body=false)],
   )
   println("run_http_app -> \{via_req.length()} events")
   // spec_version negotiation: each sub-protocol carries its own handshake.

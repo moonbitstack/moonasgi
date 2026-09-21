@@ -1,0 +1,8 @@
+// ASGI 3.0 规范本体：作用域、版本、扩展、消息类型，以及线上头部与
+// HTTP/2 伪头部到作用域的降级。
+//
+// 规范：https://asgi.readthedocs.io/en/latest/specs/main.html
+import {
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/buffer",
+}

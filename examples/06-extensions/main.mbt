@@ -53,13 +53,13 @@ fn main {
   let c = @moonasgi.TestClient::from_app(
     fn(_req) {
       [
-        @moonasgi.HttpResponseEarlyHint(links=["</hero.css>; rel=preload"]),
-        @moonasgi.HttpResponsePush(path="/hero.css", headers=[
+        @spec.HttpResponseEarlyHint(links=["</hero.css>; rel=preload"]),
+        @spec.HttpResponsePush(path="/hero.css", headers=[
           ("accept", "text/css"),
         ]),
-        @moonasgi.HttpResponseDebug(info={ "route": "qwq", "ms": 233 }),
-        @moonasgi.HttpResponseStart(status=200, headers=[], trailers=false),
-        @moonasgi.HttpResponsePathSend(path="/var/www/hero.html"),
+        @spec.HttpResponseDebug(info={ "route": "qwq", "ms": 233 }),
+        @spec.HttpResponseStart(status=200, headers=[], trailers=false),
+        @spec.HttpResponsePathSend(path="/var/www/hero.html"),
       ]
     },
     extensions=ext,
@@ -86,8 +86,8 @@ fn main {
   // The zerocopysend extension: an app hands the server an open fd and a range.
   let z = @moonasgi.TestClient::from_app(fn(_req) {
     [
-      @moonasgi.HttpResponseStart(status=200, headers=[], trailers=false),
-      @moonasgi.HttpResponseZeroCopySend(
+      @spec.HttpResponseStart(status=200, headers=[], trailers=false),
+      @spec.HttpResponseZeroCopySend(
         fd=233,
         offset=Some(0),
         count=Some(66666),

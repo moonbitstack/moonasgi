@@ -441,3 +441,32 @@ pub type Send = async (Event) -> Unit
 /// The load-bearing ASGI callable: `(scope, receive, send)`. Every server binds
 /// to this shape and every framework in the suite ultimately compiles down to it.
 pub type AsgiApp = async (Scope, Receive, Send) -> Unit
+
+///|
+/// Choose the subprotocol to accept from those the client offered (RFC 6455 §4.1): the first of the
+/// client's offered `subprotocols`, in the client's own order of preference, that the server also
+/// lists in `supported`; `None` when the two share none (the connection then proceeds with no
+/// subprotocol). The result is what the app hands to `WebSocketAccept(subprotocol=..)`.
+pub fn WebSocketScope::select_subprotocol(
+  self : WebSocketScope,
+  supported : Array[String],
+) -> String? {
+  for offered in self.subprotocols {
+    if supported.contains(offered) {
+      return Some(offered)
+    }
+  }
+  None
+}
+
+///|
+pub extend TlsExtension with Eq::{not_equal, equal}
+
+///|
+pub extend Event with Eq::{not_equal, equal}
+
+///|
+pub extend AsgiVersion with Eq::{not_equal, equal}
+
+///|
+pub extend Extensions with Eq::{not_equal, equal}

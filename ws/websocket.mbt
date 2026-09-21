@@ -1,21 +1,4 @@
 ///|
-/// Choose the subprotocol to accept from those the client offered (RFC 6455 §4.1): the first of the
-/// client's offered `subprotocols`, in the client's own order of preference, that the server also
-/// lists in `supported`; `None` when the two share none (the connection then proceeds with no
-/// subprotocol). The result is what the app hands to `WebSocketAccept(subprotocol=..)`.
-pub fn WebSocketScope::select_subprotocol(
-  self : WebSocketScope,
-  supported : Array[String],
-) -> String? {
-  for offered in self.subprotocols {
-    if supported.contains(offered) {
-      return Some(offered)
-    }
-  }
-  None
-}
-
-///|
 /// A message crossing a WebSocket in either direction: a UTF-8 `Text` frame or a
 /// `Binary` frame. The ergonomic form of `WebSocketReceive` / `WebSocketSendText`
 /// / `WebSocketSendBytes`, so a `WebSocketHandler` reasons over messages instead
@@ -61,7 +44,7 @@ pub(all) enum WsSend {
 /// backend without an async socket — the faithful synchronous core the async
 /// server (`mooncat`) lifts onto `AsgiApp`.
 pub(all) struct WebSocketHandler {
-  on_connect : (WebSocketScope) -> WsAccept
+  on_connect : (@spec.WebSocketScope) -> WsAccept
   on_receive : (WsMessage) -> Array[WsSend]
   on_disconnect : (Int, String?) -> Array[WsSend]
 }
@@ -72,7 +55,7 @@ pub(all) struct WebSocketHandler {
 /// `on_disconnect` default to doing nothing. Callers override only the phases
 /// they care about.
 pub fn WebSocketHandler::new(
-  on_connect? : (WebSocketScope) -> WsAccept = fn(_s) {
+  on_connect? : (@spec.WebSocketScope) -> WsAccept = fn(_s) {
     Accept(subprotocol=None, headers=[])
   },
   on_receive? : (WsMessage) -> Array[WsSend] = fn(_m) { [] },
@@ -100,8 +83,8 @@ pub fn WebSocketHandler::echo(
 }
 
 ///|
-/// Lower one outbound `WsSend` to the wire `Event` a server would push.
-fn ws_send_event(s : WsSend) -> Event {
+/// Lower one outbound `WsSend` to the wire `@spec.Event` a server would push.
+fn ws_send_event(s : WsSend) -> @spec.Event {
   match s {
     SendText(t) => WebSocketSendText(t)
     SendBinary(b) => WebSocketSendBytes(b)
@@ -136,10 +119,10 @@ fn ws_message_of(text : String?, bytes : Bytes?) -> WsMessage? {
 /// mirroring `run_http`; the `TestClient` and the async server share it.
 fn drive_ws(
   handler : WebSocketHandler,
-  scope : WebSocketScope,
-  inbound : Array[Event],
-) -> Array[Event] {
-  let out : Array[Event] = []
+  scope : @spec.WebSocketScope,
+  inbound : Array[@spec.Event],
+) -> Array[@spec.Event] {
+  let out : Array[@spec.Event] = []
   let mut accepted = false
   let mut closed = false
   for ev in inbound {
@@ -198,9 +181,9 @@ fn drive_ws(
 /// since this sugar covers websocket connections only.
 pub fn ws_run(
   handler : WebSocketHandler,
-  scope : Scope,
-  inbound : Array[Event],
-) -> Array[Event] {
+  scope : @spec.Scope,
+  inbound : Array[@spec.Event],
+) -> Array[@spec.Event] {
   match scope {
     WebSocket(ws) => drive_ws(handler, ws, inbound)
     _ => []
@@ -209,18 +192,27 @@ pub fn ws_run(
 
 ///|
 /// The general sans-transport WebSocket core: hand the whole inbound event
-/// stream and the `WebSocketScope` to `app` and return the outbound events it
+/// stream and the `@spec.WebSocketScope` to `app` and return the outbound events it
 /// emits. The escape hatch under `ws_run` for applications whose control flow is
 /// not the connect/receive/disconnect fold — an app is free to inspect every
 /// scope field (subprotocols, headers, extensions, state) and emit any sequence.
 /// Non-websocket scopes yield `[]`. The WebSocket analog of `run_http_app`.
 pub fn ws_run_app(
-  app : (WebSocketScope, Array[Event]) -> Array[Event],
-  scope : Scope,
-  inbound : Array[Event],
-) -> Array[Event] {
+  app : (@spec.WebSocketScope, Array[@spec.Event]) -> Array[@spec.Event],
+  scope : @spec.Scope,
+  inbound : Array[@spec.Event],
+) -> Array[@spec.Event] {
   match scope {
     WebSocket(ws) => app(ws, inbound)
     _ => []
   }
 }
+
+///|
+pub extend WsAccept with Eq::{not_equal, equal}
+
+///|
+pub extend WsMessage with Eq::{not_equal, equal}
+
+///|
+pub extend WsSend with Eq::{not_equal, equal}

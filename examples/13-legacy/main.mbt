@@ -30,7 +30,7 @@ fn main {
   let scope = @moonasgi.Scope::Http(
     @moonasgi.HttpScope::new(http_method="POST", path="/l"),
   )
-  let inbound = [@moonasgi.HttpRequest(body=b"heke1228", more_body=false)]
+  let inbound = [@spec.HttpRequest(body=b"heke1228", more_body=false)]
 
   // The double-callable convention, run synchronously: the outer call takes the
   // scope, the returned instance folds the inbound event stream.
@@ -41,8 +41,8 @@ fn main {
   )
   for ev in out {
     match ev {
-      @moonasgi.HttpResponseStart(status~, ..) => println("start -> \{status}")
-      @moonasgi.HttpResponseBody(body~, ..) =>
+      @spec.HttpResponseStart(status~, ..) => println("start -> \{status}")
+      @spec.HttpResponseBody(body~, ..) =>
         println("body  -> " + @moonasgi.latin1_decode(body))
       _ => ()
     }

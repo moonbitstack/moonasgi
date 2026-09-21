@@ -1,4 +1,5 @@
 import {
+  "moonbitstack/moonasgi/spec",
   "moonbitstack/moonasgi",
 }
 

@@ -1,0 +1,88 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonasgi/client"
+
+import {
+  "moonbitstack/moonasgi/http",
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/ws",
+}
+
+// Values
+pub fn reassemble(Array[@spec.Event]) -> TestResponse
+
+// Errors
+
+// Types and methods
+pub(all) struct PushPromise {
+  path : String
+  headers : Array[(String, String)]
+} derive(Eq)
+pub fn PushPromise::equal(Self, Self) -> Bool
+pub fn PushPromise::header(Self, String) -> String?
+pub fn PushPromise::not_equal(Self, Self) -> Bool
+
+pub(all) struct TestClient {
+  app : (@http.Request) -> Array[@spec.Event]
+  root_path : String
+  base_headers : Array[(String, String)]
+  client : (String, Int)?
+  server : (String, Int?)?
+  extensions : @spec.Extensions
+}
+pub fn TestClient::delete(Self, String, headers? : Array[(String, String)]) -> TestResponse
+pub fn TestClient::from_app((@http.Request) -> Array[@spec.Event], root_path? : String, base_headers? : Array[(String, String)], client? : (String, Int)?, server? : (String, Int?)?, extensions? : @spec.Extensions) -> Self
+pub fn TestClient::from_stream((@http.Request) -> @http.StreamingResponse, root_path? : String, base_headers? : Array[(String, String)], client? : (String, Int)?, server? : (String, Int?)?, extensions? : @spec.Extensions) -> Self
+pub fn TestClient::get(Self, String, headers? : Array[(String, String)]) -> TestResponse
+pub fn TestClient::head(Self, String, headers? : Array[(String, String)]) -> TestResponse
+pub fn TestClient::new((@http.Request) -> @http.Response, root_path? : String, base_headers? : Array[(String, String)], client? : (String, Int)?, server? : (String, Int?)?, extensions? : @spec.Extensions) -> Self
+pub fn TestClient::patch(Self, String, body? : Bytes, headers? : Array[(String, String)]) -> TestResponse
+pub fn TestClient::post(Self, String, body? : Bytes, headers? : Array[(String, String)]) -> TestResponse
+pub fn TestClient::put(Self, String, body? : Bytes, headers? : Array[(String, String)]) -> TestResponse
+pub fn TestClient::request(Self, http_method~ : String, path~ : String, headers? : Array[(String, String)], body? : Bytes, http_version? : String, chunks? : Array[Bytes]) -> TestResponse
+pub fn TestClient::websocket(Self, path~ : String, handler~ : @ws.WebSocketHandler, send? : Array[@ws.WsMessage], headers? : Array[(String, String)], subprotocols? : Array[String], disconnect? : Int?) -> WsTestSession
+pub fn TestClient::websocket_app(Self, path~ : String, app~ : (@spec.WebSocketScope, Array[@spec.Event]) -> Array[@spec.Event], send? : Array[@ws.WsMessage], headers? : Array[(String, String)], subprotocols? : Array[String], disconnect? : Int?) -> WsTestSession
+
+pub(all) struct TestResponse {
+  status : Int
+  headers : Array[(String, String)]
+  body : Bytes
+  trailers : Array[(String, String)]
+  pushes : Array[PushPromise]
+  pathsend : String?
+  zerocopysend : ZeroCopySend?
+  debug : Array[Json]
+  early_hints : Array[Array[String]]
+} derive(Eq)
+pub fn TestResponse::equal(Self, Self) -> Bool
+pub fn TestResponse::header(Self, String) -> String?
+pub fn TestResponse::json(Self) -> Json raise
+pub fn TestResponse::not_equal(Self, Self) -> Bool
+pub fn TestResponse::text(Self) -> String
+pub fn TestResponse::trailer(Self, String) -> String?
+
+pub(all) struct WsTestSession {
+  accepted : Bool
+  subprotocol : String?
+  accept_headers : Array[(String, String)]
+  messages : Array[@ws.WsMessage]
+  closed : Bool
+  close_code : Int?
+  close_reason : String?
+  denial : TestResponse?
+} derive(Eq)
+pub fn WsTestSession::equal(Self, Self) -> Bool
+pub fn WsTestSession::header(Self, String) -> String?
+pub fn WsTestSession::not_equal(Self, Self) -> Bool
+pub fn WsTestSession::texts(Self) -> Array[String]
+
+pub(all) struct ZeroCopySend {
+  fd : Int
+  offset : Int?
+  count : Int?
+} derive(Eq)
+pub fn ZeroCopySend::equal(Self, Self) -> Bool
+pub fn ZeroCopySend::not_equal(Self, Self) -> Bool
+
+// Type aliases
+
+// Traits

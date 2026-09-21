@@ -25,13 +25,13 @@
 fn main {
   let describe = fn(e : @moonasgi.Http2HeaderError) -> String {
     match e {
-      @moonasgi.MissingMethod => "missing :method"
-      @moonasgi.MissingScheme => "missing :scheme"
-      @moonasgi.MissingPath => "missing :path"
-      @moonasgi.EmptyPath => "empty :path"
-      @moonasgi.DuplicatePseudoHeader(n) => "duplicate " + n
-      @moonasgi.UnknownPseudoHeader(n) => "unknown " + n
-      @moonasgi.PseudoHeaderAfterRegular(n) => "pseudo after regular: " + n
+      @spec.MissingMethod => "missing :method"
+      @spec.MissingScheme => "missing :scheme"
+      @spec.MissingPath => "missing :path"
+      @spec.EmptyPath => "empty :path"
+      @spec.DuplicatePseudoHeader(n) => "duplicate " + n
+      @spec.UnknownPseudoHeader(n) => "unknown " + n
+      @spec.PseudoHeaderAfterRegular(n) => "pseudo after regular: " + n
     }
   }
   // A well-formed h2 HEADERS block lowers onto a scope.

@@ -32,55 +32,55 @@ fn main {
   )
   // A well-formed response: start, then a single final body.
   let good = [
-    @moonasgi.HttpResponseStart(status=200, headers=[], trailers=false),
-    @moonasgi.HttpResponseBody(body=b"ok", more_body=false),
+    @spec.HttpResponseStart(status=200, headers=[], trailers=false),
+    @spec.HttpResponseBody(body=b"ok", more_body=false),
   ]
   report("http start+body", @moonasgi.validate_events(http, good))
   // Malformed http streams, each named by its exact violation.
   report(
     "http body before start",
     @moonasgi.validate_http_response([
-      @moonasgi.HttpResponseBody(body=b"x", more_body=false),
+      @spec.HttpResponseBody(body=b"x", more_body=false),
     ]),
   )
   report(
     "http duplicate start",
     @moonasgi.validate_events(http, [
-      @moonasgi.HttpResponseStart(status=200, headers=[], trailers=false),
-      @moonasgi.HttpResponseStart(status=200, headers=[], trailers=false),
+      @spec.HttpResponseStart(status=200, headers=[], trailers=false),
+      @spec.HttpResponseStart(status=200, headers=[], trailers=false),
     ]),
   )
   report(
     "http incomplete body",
     @moonasgi.validate_events(http, [
-      @moonasgi.HttpResponseStart(status=200, headers=[], trailers=false),
-      @moonasgi.HttpResponseBody(body=b"x", more_body=true),
+      @spec.HttpResponseStart(status=200, headers=[], trailers=false),
+      @spec.HttpResponseBody(body=b"x", more_body=true),
     ]),
   )
   // WebSocket ordering: a frame before the handshake is accepted.
   let ws = @moonasgi.Scope::WebSocket(@moonasgi.WebSocketScope::new(path="/ws"))
   report(
     "ws frame before accept",
-    @moonasgi.validate_ws_response([@moonasgi.WebSocketSendText("x")]),
+    @moonasgi.validate_ws_response([@spec.WebSocketSendText("x")]),
   )
   report(
     "ws accept+close",
     @moonasgi.validate_events(ws, [
-      @moonasgi.WebSocketAccept(subprotocol=None, headers=[]),
-      @moonasgi.WebSocketClose(code=1000, reason=""),
+      @spec.WebSocketAccept(subprotocol=None, headers=[]),
+      @spec.WebSocketClose(code=1000, reason=""),
     ]),
   )
   // Lifespan ordering: a shutdown reply before the startup reply.
   let ls = @moonasgi.Scope::Lifespan(@moonasgi.LifespanScope::new())
   report(
     "ls shutdown before startup",
-    @moonasgi.validate_lifespan_replies([@moonasgi.LifespanShutdownComplete]),
+    @moonasgi.validate_lifespan_replies([@spec.LifespanShutdownComplete]),
   )
   report(
     "ls startup+shutdown",
     @moonasgi.validate_events(ls, [
-      @moonasgi.LifespanStartupComplete,
-      @moonasgi.LifespanShutdownComplete,
+      @spec.LifespanStartupComplete,
+      @spec.LifespanShutdownComplete,
     ]),
   )
 }

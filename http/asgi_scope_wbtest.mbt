@@ -68,7 +68,7 @@ test "run_http drains a chunked body, runs the handler, emits start+body" {
     ran.push(req.body)
     Response::new(201, [("x-seen", req.path)], req.body)
   }
-  let hs : HttpScope = {
+  let hs : @spec.HttpScope = {
     http_version: "1.1",
     http_method: "POST",
     scheme: "http",
@@ -79,16 +79,16 @@ test "run_http drains a chunked body, runs the handler, emits start+body" {
     headers: [("content-type", "text/plain")],
     client: None,
     server: None,
-    asgi: AsgiVersion::default(),
-    extensions: Extensions::none(),
+    asgi: @spec.AsgiVersion::default(),
+    extensions: @spec.Extensions::none(),
     state: Map([]),
   }
   // A two-chunk streamed body, terminated by more_body=false.
-  let inbound : Array[Event] = [
-    Event::HttpRequest(body=b"Hello, ", more_body=true),
-    Event::HttpRequest(body=b"world", more_body=false),
+  let inbound : Array[@spec.Event] = [
+    @spec.Event::HttpRequest(body=b"Hello, ", more_body=true),
+    @spec.Event::HttpRequest(body=b"world", more_body=false),
   ]
-  let out = run_http(handler, Scope::Http(hs), inbound)
+  let out = run_http(handler, @spec.Scope::Http(hs), inbound)
   // The handler ran exactly once, against the reassembled body.
   assert_eq(ran.length(), 1)
   assert_eq(ran[0], b"Hello, world")
@@ -96,7 +96,7 @@ test "run_http drains a chunked body, runs the handler, emits start+body" {
   assert_eq(out.length(), 2)
   assert_eq(
     out[0] ==
-    Event::HttpResponseStart(
+    @spec.Event::HttpResponseStart(
       status=201,
       headers=[("x-seen", "/echo")],
       trailers=false,
@@ -104,7 +104,8 @@ test "run_http drains a chunked body, runs the handler, emits start+body" {
     true,
   )
   assert_eq(
-    out[1] == Event::HttpResponseBody(body=b"Hello, world", more_body=false),
+    out[1] ==
+    @spec.Event::HttpResponseBody(body=b"Hello, world", more_body=false),
     true,
   )
 }
@@ -116,9 +117,11 @@ test "run_http is a no-op for non-http scopes" {
     ran.push(())
     Response::text("unused")
   }
-  let out = run_http(handler, Scope::Lifespan(LifespanScope::new()), [
-    Event::LifespanShutdown,
-  ])
+  let out = run_http(
+    handler,
+    @spec.Scope::Lifespan(@spec.LifespanScope::new()),
+    [@spec.Event::LifespanShutdown],
+  )
   assert_eq(out.length(), 0)
   assert_eq(ran.length(), 0)
 }
@@ -130,7 +133,7 @@ test "to_asgi matches run_http and drives receive/send in order" {
   let handler : Handler = fn(req) {
     Response::new(200, [("x-method", req.http_method)], req.body)
   }
-  let hs : HttpScope = {
+  let hs : @spec.HttpScope = {
     http_version: "1.1",
     http_method: "PUT",
     scheme: "http",
@@ -141,20 +144,20 @@ test "to_asgi matches run_http and drives receive/send in order" {
     headers: [],
     client: None,
     server: None,
-    asgi: AsgiVersion::default(),
-    extensions: Extensions::none(),
+    asgi: @spec.AsgiVersion::default(),
+    extensions: @spec.Extensions::none(),
     state: Map([]),
   }
-  let inbound : Array[Event] = [
-    Event::HttpRequest(body=b"ab", more_body=true),
-    Event::HttpRequest(body=b"c", more_body=false),
+  let inbound : Array[@spec.Event] = [
+    @spec.Event::HttpRequest(body=b"ab", more_body=true),
+    @spec.Event::HttpRequest(body=b"c", more_body=false),
   ]
   // The events to_asgi ought to send are exactly run_http's output.
-  let expected = run_http(handler, Scope::Http(hs), inbound)
+  let expected = run_http(handler, @spec.Scope::Http(hs), inbound)
   assert_eq(expected.length(), 2)
   assert_eq(
     expected[0] ==
-    Event::HttpResponseStart(
+    @spec.Event::HttpResponseStart(
       status=200,
       headers=[("x-method", "PUT")],
       trailers=false,
@@ -162,14 +165,14 @@ test "to_asgi matches run_http and drives receive/send in order" {
     true,
   )
   assert_eq(
-    expected[1] == Event::HttpResponseBody(body=b"abc", more_body=false),
+    expected[1] == @spec.Event::HttpResponseBody(body=b"abc", more_body=false),
     true,
   )
 }
 
 ///|
 test "SEAM scope and event variants construct" {
-  let hs : HttpScope = {
+  let hs : @spec.HttpScope = {
     http_version: "1.1",
     http_method: "GET",
     scheme: "http",
@@ -180,11 +183,11 @@ test "SEAM scope and event variants construct" {
     headers: [],
     client: Some(("127.0.0.1", 51000)),
     server: Some(("127.0.0.1", Some(8000))),
-    asgi: AsgiVersion::default(),
-    extensions: Extensions::none(),
+    asgi: @spec.AsgiVersion::default(),
+    extensions: @spec.Extensions::none(),
     state: Map([]),
   }
-  let ws : WebSocketScope = {
+  let ws : @spec.WebSocketScope = {
     http_version: "1.1",
     scheme: "ws",
     path: "/ws",
@@ -195,50 +198,60 @@ test "SEAM scope and event variants construct" {
     client: None,
     server: None,
     subprotocols: ["chat"],
-    asgi: AsgiVersion::default(),
-    extensions: Extensions::none(),
+    asgi: @spec.AsgiVersion::default(),
+    extensions: @spec.Extensions::none(),
     state: Map([]),
   }
-  let scopes : Array[Scope] = [
-    Scope::Http(hs),
-    Scope::WebSocket(ws),
-    Scope::Lifespan(LifespanScope::new()),
+  let scopes : Array[@spec.Scope] = [
+    @spec.Scope::Http(hs),
+    @spec.Scope::WebSocket(ws),
+    @spec.Scope::Lifespan(@spec.LifespanScope::new()),
   ]
   assert_eq(scopes.length(), 3)
-  let events : Array[Event] = [
-    Event::HttpRequest(body=b"", more_body=false),
-    Event::HttpDisconnect,
-    Event::HttpResponseStart(status=200, headers=[], trailers=false),
-    Event::HttpResponseBody(body=b"ok", more_body=false),
-    Event::HttpResponseTrailers(headers=[("digest", "x")], more_trailers=false),
-    Event::HttpResponsePush(path="/style.css", headers=[]),
-    Event::HttpResponsePathSend(path="/var/www/index.html"),
-    Event::HttpResponseZeroCopySend(
+  let events : Array[@spec.Event] = [
+    @spec.Event::HttpRequest(body=b"", more_body=false),
+    @spec.Event::HttpDisconnect,
+    @spec.Event::HttpResponseStart(status=200, headers=[], trailers=false),
+    @spec.Event::HttpResponseBody(body=b"ok", more_body=false),
+    @spec.Event::HttpResponseTrailers(
+      headers=[("digest", "x")],
+      more_trailers=false,
+    ),
+    @spec.Event::HttpResponsePush(path="/style.css", headers=[]),
+    @spec.Event::HttpResponsePathSend(path="/var/www/index.html"),
+    @spec.Event::HttpResponseZeroCopySend(
       fd=9,
       offset=Some(0),
       count=None,
       more_body=false,
     ),
-    Event::HttpResponseDebug(info={ "phase": "test" }.to_json()),
-    Event::HttpResponseEarlyHint(links=["</a.css>; rel=preload"]),
-    Event::WebSocketConnect,
-    Event::WebSocketReceive(text=Some("hi"), bytes=None),
-    Event::WebSocketDisconnect(code=1000, reason=Some("bye")),
-    Event::WebSocketAccept(subprotocol=None, headers=[]),
-    Event::WebSocketSendText("hi"),
-    Event::WebSocketSendBytes(b"hi"),
-    Event::WebSocketClose(code=1000, reason=""),
-    Event::WebSocketHttpResponseStart(status=403, headers=[], trailers=false),
-    Event::WebSocketHttpResponseBody(body=b"denied", more_body=false),
-    Event::LifespanStartup,
-    Event::LifespanShutdown,
-    Event::LifespanStartupComplete,
-    Event::LifespanStartupFailed(message="boom"),
-    Event::LifespanShutdownComplete,
-    Event::LifespanShutdownFailed(message="boom"),
+    @spec.Event::HttpResponseDebug(info={ "phase": "test" }.to_json()),
+    @spec.Event::HttpResponseEarlyHint(links=["</a.css>; rel=preload"]),
+    @spec.Event::WebSocketConnect,
+    @spec.Event::WebSocketReceive(text=Some("hi"), bytes=None),
+    @spec.Event::WebSocketDisconnect(code=1000, reason=Some("bye")),
+    @spec.Event::WebSocketAccept(subprotocol=None, headers=[]),
+    @spec.Event::WebSocketSendText("hi"),
+    @spec.Event::WebSocketSendBytes(b"hi"),
+    @spec.Event::WebSocketClose(code=1000, reason=""),
+    @spec.Event::WebSocketHttpResponseStart(
+      status=403,
+      headers=[],
+      trailers=false,
+    ),
+    @spec.Event::WebSocketHttpResponseBody(body=b"denied", more_body=false),
+    @spec.Event::LifespanStartup,
+    @spec.Event::LifespanShutdown,
+    @spec.Event::LifespanStartupComplete,
+    @spec.Event::LifespanStartupFailed(message="boom"),
+    @spec.Event::LifespanShutdownComplete,
+    @spec.Event::LifespanShutdownFailed(message="boom"),
   ]
-  // Every Event variant is represented, matching the conformance table.
+  // Every @spec.Event variant is represented, matching the conformance table.
   assert_eq(events.length(), 25)
-  assert_eq(Event::HttpDisconnect == Event::HttpDisconnect, true)
-  assert_eq(events[0] == Event::HttpRequest(body=b"", more_body=false), true)
+  assert_eq(@spec.Event::HttpDisconnect == @spec.Event::HttpDisconnect, true)
+  assert_eq(
+    events[0] == @spec.Event::HttpRequest(body=b"", more_body=false),
+    true,
+  )
 }

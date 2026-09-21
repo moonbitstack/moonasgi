@@ -26,23 +26,23 @@ fn main {
     on_startup=fn(s) {
       s.state["db_pool"] = "pool://heke1228".to_json()
       s.state["greeting"] = "Bonjour".to_json()
-      @moonasgi.Complete
+      @lifespan.Complete
     },
-    on_shutdown=fn(_s) { @moonasgi.Complete },
+    on_shutdown=fn(_s) { @lifespan.Complete },
   )
   let scope = @moonasgi.LifespanScope::new()
   let driven = @moonasgi.Scope::Lifespan(scope)
   let cycle = @moonasgi.run_lifespan(handler, driven, [
-    @moonasgi.LifespanStartup,
-    @moonasgi.LifespanShutdown,
+    @spec.LifespanStartup,
+    @spec.LifespanShutdown,
   ])
   for ev in cycle {
     match ev {
-      @moonasgi.LifespanStartupComplete => println("<- startup.complete")
-      @moonasgi.LifespanShutdownComplete => println("<- shutdown.complete")
-      @moonasgi.LifespanStartupFailed(message~) =>
+      @spec.LifespanStartupComplete => println("<- startup.complete")
+      @spec.LifespanShutdownComplete => println("<- shutdown.complete")
+      @spec.LifespanStartupFailed(message~) =>
         println("<- startup.failed: " + message)
-      @moonasgi.LifespanShutdownFailed(message~) =>
+      @spec.LifespanShutdownFailed(message~) =>
         println("<- shutdown.failed: " + message)
       _ => ()
     }
@@ -59,18 +59,17 @@ fn main {
 
   // A failed startup aborts the boot: ASGI never proceeds to shutdown.
   let failing = @moonasgi.LifespanHandler::new(on_startup=fn(_s) {
-    @moonasgi.Failed(message="db unreachable")
+    @lifespan.Failed(message="db unreachable")
   })
   let aborted = @moonasgi.run_lifespan(
     failing,
     @moonasgi.Scope::Lifespan(@moonasgi.LifespanScope::new()),
-    [@moonasgi.LifespanStartup, @moonasgi.LifespanShutdown],
+    [@spec.LifespanStartup, @spec.LifespanShutdown],
   )
   println("failed startup emitted \{aborted.length()} reply (shutdown skipped)")
   for ev in aborted {
     match ev {
-      @moonasgi.LifespanStartupFailed(message~) =>
-        println("  reason: " + message)
+      @spec.LifespanStartupFailed(message~) => println("  reason: " + message)
       _ => ()
     }
   }

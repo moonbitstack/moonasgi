@@ -20,8 +20,8 @@ pub(all) enum LifespanReply {
 /// the faithful synchronous core the async server (`mooncat`) lifts onto the
 /// lifespan protocol.
 pub(all) struct LifespanHandler {
-  on_startup : (LifespanScope) -> LifespanReply
-  on_shutdown : (LifespanScope) -> LifespanReply
+  on_startup : (@spec.LifespanScope) -> LifespanReply
+  on_shutdown : (@spec.LifespanScope) -> LifespanReply
 }
 
 ///|
@@ -29,16 +29,16 @@ pub(all) struct LifespanHandler {
 /// anything, so a caller overrides only the phase it needs — an app that just
 /// wants a startup hook leaves `on_shutdown` alone.
 pub fn LifespanHandler::new(
-  on_startup? : (LifespanScope) -> LifespanReply = fn(_s) { Complete },
-  on_shutdown? : (LifespanScope) -> LifespanReply = fn(_s) { Complete },
+  on_startup? : (@spec.LifespanScope) -> LifespanReply = fn(_s) { Complete },
+  on_shutdown? : (@spec.LifespanScope) -> LifespanReply = fn(_s) { Complete },
 ) -> LifespanHandler {
   { on_startup, on_shutdown, }
 }
 
 ///|
-/// Lower one `LifespanReply` to the outbound `Event` a server sends for a phase:
+/// Lower one `LifespanReply` to the outbound `@spec.Event` a server sends for a phase:
 /// `startup` picks the startup reply pair, `shutdown` the shutdown pair.
-fn lifespan_reply_event(reply : LifespanReply, startup : Bool) -> Event {
+fn lifespan_reply_event(reply : LifespanReply, startup : Bool) -> @spec.Event {
   match (reply, startup) {
     (Complete, true) => LifespanStartupComplete
     (Complete, false) => LifespanShutdownComplete
@@ -59,12 +59,12 @@ fn lifespan_reply_event(reply : LifespanReply, startup : Bool) -> Event {
 /// scope yields `[]`.
 pub fn run_lifespan(
   handler : LifespanHandler,
-  scope : Scope,
-  inbound : Array[Event],
-) -> Array[Event] {
+  scope : @spec.Scope,
+  inbound : Array[@spec.Event],
+) -> Array[@spec.Event] {
   match scope {
     Lifespan(ls) => {
-      let out : Array[Event] = []
+      let out : Array[@spec.Event] = []
       let mut startup_failed = false
       for ev in inbound {
         if startup_failed {
@@ -88,3 +88,6 @@ pub fn run_lifespan(
     _ => []
   }
 }
+
+///|
+pub extend LifespanReply with Eq::{not_equal, equal}

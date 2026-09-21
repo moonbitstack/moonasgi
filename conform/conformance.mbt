@@ -16,16 +16,16 @@ pub fn ConformanceReport::ok(self : ConformanceReport) -> Bool {
 }
 
 ///|
-/// One of each `Event` variant, distinct payloads — the table the harness folds
-/// over to prove `Event`'s derived equality discriminates every message in the
+/// One of each `@spec.Event` variant, distinct payloads — the table the harness folds
+/// over to prove `@spec.Event`'s derived equality discriminates every message in the
 /// http / websocket / lifespan sets in both directions (no two variants collapse).
-fn all_event_variants() -> Array[Event] {
+fn all_event_variants() -> Array[@spec.Event] {
   [
     HttpRequest(body=b"body", more_body=true),
     HttpDisconnect,
-    HttpResponseStart(status=200, headers=[("a", "b")], trailers=false),
-    HttpResponseBody(body=b"x", more_body=false),
-    HttpResponseTrailers(headers=[("t", "v")], more_trailers=false),
+    @spec.HttpResponseStart(status=200, headers=[("a", "b")], trailers=false),
+    @spec.HttpResponseBody(body=b"x", more_body=false),
+    @spec.HttpResponseTrailers(headers=[("t", "v")], more_trailers=false),
     HttpResponsePush(path="/p", headers=[]),
     HttpResponsePathSend(path="/f"),
     HttpResponseZeroCopySend(
@@ -39,11 +39,11 @@ fn all_event_variants() -> Array[Event] {
     WebSocketConnect,
     WebSocketReceive(text=Some("hi"), bytes=None),
     WebSocketDisconnect(code=1000, reason=Some("bye")),
-    WebSocketAccept(subprotocol=Some("chat"), headers=[]),
+    @spec.WebSocketAccept(subprotocol=Some("chat"), headers=[]),
     WebSocketSendText("hi"),
     WebSocketSendBytes(b"hi"),
     WebSocketClose(code=1001, reason="bye"),
-    WebSocketHttpResponseStart(status=403, headers=[], trailers=false),
+    @spec.WebSocketHttpResponseStart(status=403, headers=[], trailers=false),
     WebSocketHttpResponseBody(body=b"no", more_body=false),
     LifespanStartup,
     LifespanShutdown,
@@ -56,8 +56,8 @@ fn all_event_variants() -> Array[Event] {
 
 ///|
 /// Run the ASGI 3.0 conformance harness: a table-driven battery that drives every
-/// `Event` variant and every `Scope` field through `run_http`, `ws_run`, and the
-/// `TestClient`, asserting round-trip fidelity — a value put in comes back
+/// `@spec.Event` variant and every `Scope` field through `@http.run_http`, `ws_run`, and the
+/// `@client.TestClient`, asserting round-trip fidelity — a value put in comes back
 /// unchanged, and no two distinct events or scope shapes are confused — and a
 /// negative table that asserts `validate_events` rejects every malformed ordering
 /// (a body before the response starts, a websocket frame before the handshake, a
@@ -70,7 +70,7 @@ pub fn run_conformance() -> ConformanceReport {
     results.push((name, cond))
   }
 
-  // A. every Event variant is self-equal and pairwise-distinct: derived equality
+  // A. every @spec.Event variant is self-equal and pairwise-distinct: derived equality
   //    discriminates all 25 messages, so none collapses into another.
   let evs = all_event_variants()
   check("event/count", evs.length() == 25)
@@ -84,7 +84,7 @@ pub fn run_conformance() -> ConformanceReport {
     }
   }
 
-  // B. http response round-trip through the TestClient: status, headers and body
+  // B. http response round-trip through the @client.TestClient: status, headers and body
   //    survive lowering to events and reassembly.
   let http_cases : Array[(Int, Array[(String, String)], Bytes)] = [
     (200, [("content-type", "text/plain")], b"ok"),
@@ -94,8 +94,8 @@ pub fn run_conformance() -> ConformanceReport {
   ]
   for c in http_cases {
     let (status, headers, body) = c
-    let client = TestClient::new(fn(_req) {
-      Response::new(status, headers, body)
+    let client = @client.TestClient::new(fn(_req) {
+      @http.Response::new(status, headers, body)
     })
     let r = client.get("/")
     check(
@@ -109,17 +109,17 @@ pub fn run_conformance() -> ConformanceReport {
   let methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
   for m in methods {
     let seen : Array[String] = []
-    let client = TestClient::new(fn(req) {
+    let client = @client.TestClient::new(fn(req) {
       seen.push(req.http_method)
-      Response::text("ok")
+      @http.Response::text("ok")
     })
     let _ = client.request(http_method=m, path="/x")
     check("http/method[" + m + "]", seen.length() == 1 && seen[0] == m)
   }
   let qseen : Array[(String, Bytes)] = []
-  let qclient = TestClient::new(fn(req) {
+  let qclient = @client.TestClient::new(fn(req) {
     qseen.push((req.path, req.query_string))
-    Response::text("ok")
+    @http.Response::text("ok")
   })
   let _ = qclient.get("/search?q=moonbit&n=3")
   check(
@@ -129,9 +129,9 @@ pub fn run_conformance() -> ConformanceReport {
     qseen[0].1 == b"q=moonbit&n=3",
   )
   let bseen : Array[Bytes] = []
-  let bclient = TestClient::new(fn(req) {
+  let bclient = @client.TestClient::new(fn(req) {
     bseen.push(req.body)
-    Response::text("ok")
+    @http.Response::text("ok")
   })
   let _ = bclient.request(http_method="POST", path="/u", chunks=[
     b"chunk-1;", b"chunk-2",
@@ -144,7 +144,7 @@ pub fn run_conformance() -> ConformanceReport {
   // D. every Scope field round-trips: build each scope kind with all fields set
   //    distinctively and read them back, and check the per-subprotocol
   //    spec_version defaults.
-  let hs = HttpScope::new(
+  let hs = @spec.HttpScope::new(
     http_method="POST",
     path="/deep",
     http_version="2",
@@ -155,7 +155,7 @@ pub fn run_conformance() -> ConformanceReport {
     headers=[("host", "h")],
     client=Some(("1.2.3.4", 5)),
     server=Some(("9.8.7.6", Some(4))),
-    extensions=Extensions::none().enable_push(),
+    extensions=@spec.Extensions::none().enable_push(),
     state=Map([("k", Json::string("v"))]),
   )
   check(
@@ -173,7 +173,7 @@ pub fn run_conformance() -> ConformanceReport {
     hs.extensions.http_response_push &&
     hs.asgi.spec_version == "2.5",
   )
-  let wss = WebSocketScope::new(
+  let wss = @spec.WebSocketScope::new(
     path="/ws",
     scheme="wss",
     query_string=b"t=1",
@@ -182,7 +182,7 @@ pub fn run_conformance() -> ConformanceReport {
     client=Some(("c", 1)),
     server=Some(("s", Some(2))),
     subprotocols=["chat", "json"],
-    extensions=Extensions::none().enable_websocket_http_response(),
+    extensions=@spec.Extensions::none().enable_websocket_http_response(),
   )
   check(
     "scope/ws-fields",
@@ -197,14 +197,14 @@ pub fn run_conformance() -> ConformanceReport {
     wss.extensions.websocket_http_response &&
     wss.asgi.spec_version == "2.5",
   )
-  let ls = LifespanScope::new(state=Map([("boot", true.to_json())]))
+  let ls = @spec.LifespanScope::new(state=Map([("boot", true.to_json())]))
   check(
     "scope/lifespan-fields",
     ls.asgi.spec_version == "2.0" && ls.state.get("boot") is Some(_),
   )
   // A Unix-domain-socket server address is [path, None] — the port is optional
   // (ASGI www spec), which a TCP `[host, port]` server never needs.
-  let unix = HttpScope::new(
+  let unix = @spec.HttpScope::new(
     http_method="GET",
     path="/",
     server=Some(("/run/app.sock", None)),
@@ -212,16 +212,20 @@ pub fn run_conformance() -> ConformanceReport {
   check(
     "scope/unix-server",
     unix.server == Some(("/run/app.sock", None)) &&
-    HttpScope::new(http_method="GET", path="/", server=Some(("h", Some(8080)))).server ==
+    @spec.HttpScope::new(
+      http_method="GET",
+      path="/",
+      server=Some(("h", Some(8080))),
+    ).server ==
     Some(("h", Some(8080))),
   )
 
-  // E. websocket round-trip through ws_run / TestClient: echo, subprotocol,
+  // E. websocket round-trip through ws_run / @client.TestClient: echo, subprotocol,
   //    reject, deny-with-http, and app-initiated close.
-  let echo = TestClient::new(fn(_r) { Response::text("") })
+  let echo = @client.TestClient::new(fn(_r) { @http.Response::text("") })
   let s_echo = echo.websocket(
     path="/ws",
-    handler=WebSocketHandler::echo(subprotocol=Some("chat")),
+    handler=@ws.WebSocketHandler::echo(subprotocol=Some("chat")),
     send=[Text("a"), Binary(b"b"), Text("c")],
   )
   check(
@@ -233,7 +237,7 @@ pub fn run_conformance() -> ConformanceReport {
   )
   let s_reject = echo.websocket(
     path="/ws",
-    handler=WebSocketHandler::new(on_connect=fn(_s) {
+    handler=@ws.WebSocketHandler::new(on_connect=fn(_s) {
       Reject(code=4403, reason="nope")
     }),
     send=[Text("ignored")],
@@ -247,7 +251,7 @@ pub fn run_conformance() -> ConformanceReport {
   )
   let s_deny = echo.websocket(
     path="/ws",
-    handler=WebSocketHandler::new(on_connect=fn(_s) {
+    handler=@ws.WebSocketHandler::new(on_connect=fn(_s) {
       DenyHttp(status=401, headers=[("x", "y")], body=b"denied")
     }),
   )
@@ -258,7 +262,7 @@ pub fn run_conformance() -> ConformanceReport {
   check("ws/deny-http", !s_deny.accepted && deny_ok)
   let s_close = echo.websocket(
     path="/ws",
-    handler=WebSocketHandler::new(on_receive=fn(_m) {
+    handler=@ws.WebSocketHandler::new(on_receive=fn(_m) {
       [SendText("bye"), Close(code=1000, reason="done")]
     }),
     send=[Text("first"), Text("second-should-be-ignored")],
@@ -268,9 +272,9 @@ pub fn run_conformance() -> ConformanceReport {
   // ws_run_app escape hatch sees the full scope (subprotocols) and inbound stream.
   let s_app = echo.websocket_app(
     path="/ws",
-    app=fn(scope : WebSocketScope, inbound : Array[Event]) {
+    app=fn(scope : @spec.WebSocketScope, inbound : Array[@spec.Event]) {
       [
-        WebSocketAccept(subprotocol=scope.subprotocols.get(0), headers=[
+        @spec.WebSocketAccept(subprotocol=scope.subprotocols.get(0), headers=[
           ("x-frames", inbound.length().to_string()),
         ]),
       ]
@@ -288,7 +292,7 @@ pub fn run_conformance() -> ConformanceReport {
 
   // F. extension capability flags round-trip onto the scope; early-hint events
   //    are captured by the client.
-  let ext = Extensions::none()
+  let ext = @spec.Extensions::none()
     .enable_push()
     .enable_trailers()
     .enable_pathsend()
@@ -311,7 +315,7 @@ pub fn run_conformance() -> ConformanceReport {
   check(
     "ext/zerocopysend-isolated",
     {
-      let e = Extensions::none().enable_zerocopysend()
+      let e = @spec.Extensions::none().enable_zerocopysend()
       e.http_response_zerocopysend &&
       !e.http_response_push &&
       !e.http_response_debug
@@ -320,20 +324,20 @@ pub fn run_conformance() -> ConformanceReport {
   check(
     "ext/debug-isolated",
     {
-      let e = Extensions::none().enable_debug()
+      let e = @spec.Extensions::none().enable_debug()
       e.http_response_debug &&
       !e.http_response_zerocopysend &&
       !e.http_response_pathsend
     },
   )
-  let eh_client = TestClient::from_app(fn(_req) {
+  let eh_client = @client.TestClient::from_app(fn(_req) {
     [
       HttpResponseEarlyHint(links=["</a.css>; rel=preload"]),
       HttpResponseEarlyHint(links=[
         "</b.js>; rel=preload", "</c.js>; rel=preload",
       ]),
-      HttpResponseStart(status=200, headers=[], trailers=false),
-      HttpResponseBody(body=b"", more_body=false),
+      @spec.HttpResponseStart(status=200, headers=[], trailers=false),
+      @spec.HttpResponseBody(body=b"", more_body=false),
     ]
   })
   let eh = eh_client.get("/")
@@ -345,13 +349,13 @@ pub fn run_conformance() -> ConformanceReport {
   )
 
   // G. streaming response round-trip: early hints, chunked body, and trailers.
-  let stream = StreamingResponse::new(
+  let stream = @http.StreamingResponse::new(
     status=200,
     chunks=[b"one ", b"two"],
     trailers=[("digest", "abc")],
     early_hints=[["</s.css>; rel=preload"]],
   )
-  let sclient = TestClient::from_stream(fn(_r) { stream })
+  let sclient = @client.TestClient::from_stream(fn(_r) { stream })
   let sr = sclient.get("/")
   check(
     "stream/roundtrip",
@@ -373,7 +377,7 @@ pub fn run_conformance() -> ConformanceReport {
   ]
   for vc in ver_cases {
     let (sv, maj, minr, want) = vc
-    let v : AsgiVersion = { version: "3.0", spec_version: sv, }
+    let v : @spec.AsgiVersion = { version: "3.0", spec_version: sv, }
     check(
       "spec_version/" + sv + ">=" + maj.to_string() + "." + minr.to_string(),
       v.at_least(major=maj, minor=minr) == want,
@@ -382,17 +386,21 @@ pub fn run_conformance() -> ConformanceReport {
   // I. event-ordering validation. A well-formed outbound stream passes
   //    `validate_events`; a malformed one is rejected with the exact violation.
   //    This is the negative half of the harness — the ordering rules ASGI pins.
-  let hscope = Http(HttpScope::new(http_method="GET", path="/"))
-  let wscope = WebSocket(WebSocketScope::new(path="/ws"))
-  let lscope = Lifespan(LifespanScope::new())
-  let ok_start = HttpResponseStart(status=200, headers=[], trailers=false)
-  let ok_start_tr = HttpResponseStart(status=200, headers=[], trailers=true)
-  let ok_body = HttpResponseBody(body=b"x", more_body=false)
-  let ok_trailers = HttpResponseTrailers(
+  let hscope = @spec.Http(@spec.HttpScope::new(http_method="GET", path="/"))
+  let wscope = @spec.WebSocket(@spec.WebSocketScope::new(path="/ws"))
+  let lscope = @spec.Lifespan(@spec.LifespanScope::new())
+  let ok_start = @spec.HttpResponseStart(status=200, headers=[], trailers=false)
+  let ok_start_tr = @spec.HttpResponseStart(
+    status=200,
+    headers=[],
+    trailers=true,
+  )
+  let ok_body = @spec.HttpResponseBody(body=b"x", more_body=false)
+  let ok_trailers = @spec.HttpResponseTrailers(
     headers=[("t", "v")],
     more_trailers=false,
   )
-  let valid_http : Array[(String, Array[Event])] = [
+  let valid_http : Array[(String, Array[@spec.Event])] = [
     ("start+body", [ok_start, ok_body]),
     (
       "hint+start+body",
@@ -420,7 +428,7 @@ pub fn run_conformance() -> ConformanceReport {
   for vc in valid_http {
     check("order/http-valid/" + vc.0, validate_events(hscope, vc.1) == None)
   }
-  let bad_http : Array[(String, Array[Event], EventOrderError)] = [
+  let bad_http : Array[(String, Array[@spec.Event], EventOrderError)] = [
     ("body-before-start", [ok_body], BodyBeforeStart),
     (
       "push-before-start",
@@ -446,7 +454,7 @@ pub fn run_conformance() -> ConformanceReport {
       "pathsend-after-body",
       [
         ok_start,
-        HttpResponseBody(body=b"partial", more_body=true),
+        @spec.HttpResponseBody(body=b"partial", more_body=true),
         HttpResponsePathSend(path="/f"),
       ],
       PathSendMixedWithBody,
@@ -472,7 +480,7 @@ pub fn run_conformance() -> ConformanceReport {
     ("missing-start", [], MissingResponseStart),
     (
       "incomplete-body",
-      [ok_start, HttpResponseBody(body=b"x", more_body=true)],
+      [ok_start, @spec.HttpResponseBody(body=b"x", more_body=true)],
       IncompleteBody,
     ),
     ("missing-trailers", [ok_start_tr, ok_body], MissingTrailers),
@@ -486,13 +494,13 @@ pub fn run_conformance() -> ConformanceReport {
   for bc in bad_http {
     check("order/http-bad/" + bc.0, validate_events(hscope, bc.1) == Some(bc.2))
   }
-  let ws_accept = WebSocketAccept(subprotocol=None, headers=[])
-  let ws_deny_start = WebSocketHttpResponseStart(
+  let ws_accept = @spec.WebSocketAccept(subprotocol=None, headers=[])
+  let ws_deny_start = @spec.WebSocketHttpResponseStart(
     status=403,
     headers=[],
     trailers=false,
   )
-  let valid_ws : Array[(String, Array[Event])] = [
+  let valid_ws : Array[(String, Array[@spec.Event])] = [
     ("accept", [ws_accept]),
     (
       "accept+send+close",
@@ -507,7 +515,7 @@ pub fn run_conformance() -> ConformanceReport {
   for vc in valid_ws {
     check("order/ws-valid/" + vc.0, validate_events(wscope, vc.1) == None)
   }
-  let bad_ws : Array[(String, Array[Event], EventOrderError)] = [
+  let bad_ws : Array[(String, Array[@spec.Event], EventOrderError)] = [
     ("frame-before-accept", [WebSocketSendText("x")], FrameBeforeAccept),
     ("dup-accept", [ws_accept, ws_accept], DuplicateAccept),
     (
@@ -528,7 +536,7 @@ pub fn run_conformance() -> ConformanceReport {
   for bc in bad_ws {
     check("order/ws-bad/" + bc.0, validate_events(wscope, bc.1) == Some(bc.2))
   }
-  let valid_ls : Array[(String, Array[Event])] = [
+  let valid_ls : Array[(String, Array[@spec.Event])] = [
     ("startup+shutdown", [LifespanStartupComplete, LifespanShutdownComplete]),
     ("startup-failed", [LifespanStartupFailed(message="boom")]),
     (
@@ -539,7 +547,7 @@ pub fn run_conformance() -> ConformanceReport {
   for vc in valid_ls {
     check("order/ls-valid/" + vc.0, validate_events(lscope, vc.1) == None)
   }
-  let bad_ls : Array[(String, Array[Event], EventOrderError)] = [
+  let bad_ls : Array[(String, Array[@spec.Event], EventOrderError)] = [
     (
       "shutdown-before-startup",
       [LifespanShutdownComplete],
@@ -566,34 +574,41 @@ pub fn run_conformance() -> ConformanceReport {
   }
   // J. lifespan driver: startup/shutdown replies, in-place state seeding, the
   //    full cycle's ordering, and the failed-startup short-circuit ASGI pins.
-  let boot_scope = LifespanScope::new()
-  let boot = LifespanHandler::new(on_startup=fn(s) {
+  let boot_scope = @spec.LifespanScope::new()
+  let boot = @lifespan.LifespanHandler::new(on_startup=fn(s) {
     s.state["ready"] = true.to_json()
     Complete
   })
-  let ls_driven = Lifespan(boot_scope)
-  let up = run_lifespan(boot, ls_driven, [LifespanStartup])
+  let ls_driven = @spec.Lifespan(boot_scope)
+  let up = @lifespan.run_lifespan(boot, ls_driven, [LifespanStartup])
   check("lifespan/startup-complete", up == [LifespanStartupComplete])
   check("lifespan/state-seeded", boot_scope.state.get("ready") is Some(_))
-  let cyc_scope = Lifespan(LifespanScope::new())
-  let cyc = run_lifespan(boot, cyc_scope, [LifespanStartup, LifespanShutdown])
+  let cyc_scope = @spec.Lifespan(@spec.LifespanScope::new())
+  let cyc = @lifespan.run_lifespan(boot, cyc_scope, [
+    LifespanStartup,
+    LifespanShutdown,
+  ])
   check(
     "lifespan/full-cycle",
     cyc == [LifespanStartupComplete, LifespanShutdownComplete],
   )
   check("lifespan/cycle-valid", validate_events(cyc_scope, cyc) == None)
-  let sfail = LifespanHandler::new(on_shutdown=fn(_s) {
+  let sfail = @lifespan.LifespanHandler::new(on_shutdown=fn(_s) {
     Failed(message="drain")
   })
   check(
     "lifespan/shutdown-failed",
-    run_lifespan(sfail, Lifespan(LifespanScope::new()), [LifespanShutdown]) ==
+    @lifespan.run_lifespan(sfail, @spec.Lifespan(@spec.LifespanScope::new()), [
+      LifespanShutdown,
+    ]) ==
     [LifespanShutdownFailed(message="drain")],
   )
-  let ufail = LifespanHandler::new(on_startup=fn(_s) { Failed(message="boom") })
+  let ufail = @lifespan.LifespanHandler::new(on_startup=fn(_s) {
+    Failed(message="boom")
+  })
   check(
     "lifespan/startup-failed-short-circuits",
-    run_lifespan(ufail, Lifespan(LifespanScope::new()), [
+    @lifespan.run_lifespan(ufail, @spec.Lifespan(@spec.LifespanScope::new()), [
       LifespanStartup,
       LifespanShutdown,
     ]) ==
@@ -601,48 +616,48 @@ pub fn run_conformance() -> ConformanceReport {
   )
   check(
     "lifespan/non-lifespan-scope",
-    run_lifespan(boot, hscope, [LifespanStartup]).length() == 0,
+    @lifespan.run_lifespan(boot, hscope, [LifespanStartup]).length() == 0,
   )
 
-  // K. scope-aware http core: run_http_scoped hands the app the full HttpScope
+  // K. scope-aware http core: @http.run_http_scoped hands the app the full @spec.HttpScope
   //    (state, root_path) the ergonomic Request drops, and drains the body the
   //    same way run_http_app does.
   let seen_state : Array[Bool] = []
   let seen_root : Array[String] = []
-  let scoped = fn(sh : HttpScope, sbody : Bytes) -> Array[Event] {
+  let scoped = fn(sh : @spec.HttpScope, sbody : Bytes) -> Array[@spec.Event] {
     seen_state.push(sh.state.get("k") is Some(_))
     seen_root.push(sh.root_path)
     [
-      HttpResponseStart(status=200, headers=[], trailers=false),
-      HttpResponseBody(body=sbody, more_body=false),
+      @spec.HttpResponseStart(status=200, headers=[], trailers=false),
+      @spec.HttpResponseBody(body=sbody, more_body=false),
     ]
   }
-  let scoped_scope = Http(
-    HttpScope::new(
+  let scoped_scope = @spec.Http(
+    @spec.HttpScope::new(
       http_method="POST",
       path="/x",
       root_path="/mnt",
       state=Map([("k", Json::string("v"))]),
     ),
   )
-  let scoped_out = run_http_scoped(scoped, scoped_scope, [
+  let scoped_out = @http.run_http_scoped(scoped, scoped_scope, [
     HttpRequest(body=b"ab", more_body=true),
     HttpRequest(body=b"c", more_body=false),
   ])
   check("scoped/state-visible", seen_state == [true])
   check("scoped/root-visible", seen_root == ["/mnt"])
-  check("scoped/body-drained", reassemble(scoped_out).body == b"abc")
+  check("scoped/body-drained", @client.reassemble(scoped_out).body == b"abc")
   check(
     "scoped/non-http-scope",
-    run_http_scoped(scoped, lscope, [LifespanStartup]).length() == 0,
+    @http.run_http_scoped(scoped, lscope, [LifespanStartup]).length() == 0,
   )
 
   // L. HTTP/2 pseudo-header lowering: a HEADERS block (pseudo-headers + ordinary
-  //    fields in wire order) maps onto an HttpScope the way a conforming h2/h2c
+  //    fields in wire order) maps onto an @spec.HttpScope the way a conforming h2/h2c
   //    server consumes a frame — request line from the pseudo-headers, host
   //    synthesised from :authority, `:`-prefixed names stripped from the header
   //    list — and every malformed set is rejected with the exact violation.
-  let h2 = HttpScope::from_h2_headers([
+  let h2 = @spec.HttpScope::from_h2_headers([
     (":method", "POST"),
     (":scheme", "https"),
     (":authority", "example.test"),
@@ -672,7 +687,7 @@ pub fn run_conformance() -> ConformanceReport {
     },
   )
   // :authority replaces a host header the peer also sent (RFC 7540 §8.1.2.3).
-  let h2_host = HttpScope::from_h2_headers([
+  let h2_host = @spec.HttpScope::from_h2_headers([
     (":method", "GET"),
     (":scheme", "http"),
     (":authority", "authority.test"),
@@ -689,7 +704,7 @@ pub fn run_conformance() -> ConformanceReport {
   )
   // No :authority: ordinary headers (including any host) pass through untouched,
   // and http_version="3" is honoured for the shared HTTP/3 pseudo-header path.
-  let h3 = HttpScope::from_h2_headers(
+  let h3 = @spec.HttpScope::from_h2_headers(
     [(":method", "GET"), (":scheme", "https"), (":path", "/p"), ("host", "h")],
     http_version="3",
   )
@@ -700,7 +715,7 @@ pub fn run_conformance() -> ConformanceReport {
       Err(_) => false
     },
   )
-  let bad_h2 : Array[(String, Array[(String, String)], Http2HeaderError)] = [
+  let bad_h2 : Array[(String, Array[(String, String)], @spec.Http2HeaderError)] = [
     ("missing-method", [(":scheme", "https"), (":path", "/")], MissingMethod),
     ("missing-scheme", [(":method", "GET"), (":path", "/")], MissingScheme),
     ("missing-path", [(":method", "GET"), (":scheme", "https")], MissingPath),
@@ -733,7 +748,7 @@ pub fn run_conformance() -> ConformanceReport {
   for bc in bad_h2 {
     check(
       "h2/bad/" + bc.0,
-      match HttpScope::from_h2_headers(bc.1) {
+      match @spec.HttpScope::from_h2_headers(bc.1) {
         Err(e) => e == bc.2
         Ok(_) => false
       },
@@ -742,9 +757,9 @@ pub fn run_conformance() -> ConformanceReport {
   // The SEAM is transport-version agnostic: an http_version="2" request drives
   // the exact same synchronous core and yields the same response as "1.1".
   let ver_seen : Array[String] = []
-  let ver_client = TestClient::new(fn(req) {
+  let ver_client = @client.TestClient::new(fn(req) {
     ver_seen.push(req.path)
-    Response::text("v2")
+    @http.Response::text("v2")
   })
   let v2 = ver_client.request(http_method="GET", path="/h2", http_version="2")
   check(
@@ -763,30 +778,36 @@ pub fn run_conformance() -> ConformanceReport {
     (b"x-raw", all_bytes.to_bytes()),
     (b"content-type", b"application/json"),
   ]
-  let decoded = headers_from_wire(wire_in)
-  check("header/latin1-roundtrip", headers_to_wire(decoded) == wire_in)
+  let decoded = @spec.headers_from_wire(wire_in)
+  check("header/latin1-roundtrip", @spec.headers_to_wire(decoded) == wire_in)
   check("header/latin1-name", decoded[1].0 == "content-type")
   // Encoding a seam String header and decoding it back is the identity too.
   check(
     "header/latin1-seam-roundtrip",
-    headers_from_wire(headers_to_wire([("x-a", "1"), ("x-b", "café")])) ==
+    @spec.headers_from_wire(
+      @spec.headers_to_wire([("x-a", "1"), ("x-b", "café")]),
+    ) ==
     [("x-a", "1"), ("x-b", "café")],
   )
-  // N. legacy 2.0 double-callable convention: run_legacy — the sync core of the
+  // N. legacy 2.0 double-callable convention: @spec.run_legacy — the sync core of the
   //    two-call shape double_to_single_callable lifts — yields exactly what a
   //    single-callable app yields, so a 3.0 server stays backward-compatible with a
   //    legacy 2.0 app.
-  let legacy_scope = Http(HttpScope::new(http_method="POST", path="/l"))
-  let legacy_inbound : Array[Event] = [HttpRequest(body=b"z", more_body=false)]
-  let legacy_handler : Handler = fn(_r) { Response::text("ok") }
-  let legacy_out = run_legacy(
-    fn(sc) { fn(inb) { run_http(legacy_handler, sc, inb) } },
+  let legacy_scope = @spec.Http(
+    @spec.HttpScope::new(http_method="POST", path="/l"),
+  )
+  let legacy_inbound : Array[@spec.Event] = [
+    HttpRequest(body=b"z", more_body=false),
+  ]
+  let legacy_handler : @http.Handler = fn(_r) { @http.Response::text("ok") }
+  let legacy_out = @spec.run_legacy(
+    fn(sc) { fn(inb) { @http.run_http(legacy_handler, sc, inb) } },
     legacy_scope,
     legacy_inbound,
   )
   check(
     "legacy/matches-single",
-    legacy_out == run_http(legacy_handler, legacy_scope, legacy_inbound),
+    legacy_out == @http.run_http(legacy_handler, legacy_scope, legacy_inbound),
   )
   // NOTE on what is *not* here: `to_asgi` and `guarantee_single_callable` produce
   //    an async callable, and this package has no runtime to drive one — that is the
@@ -796,7 +817,7 @@ pub fn run_conformance() -> ConformanceReport {
   // P. middleware composition: the first registered is the outermost, so it sees
   //    the request first and the response last.
   let trace : Array[String] = []
-  let outer : Middleware = next => {
+  let outer : @http.Middleware = next => {
     req => {
       trace.push("outer-in")
       let resp = next(req)
@@ -804,13 +825,15 @@ pub fn run_conformance() -> ConformanceReport {
       resp
     }
   }
-  let inner : Middleware = next => {
+  let inner : @http.Middleware = next => {
     req => {
       trace.push("inner-in")
       next(req)
     }
   }
-  let composed = compose([outer, inner], fn(_r) { Response::text("body") })
+  let composed = @http.compose([outer, inner], fn(_r) {
+    @http.Response::text("body")
+  })
   let composed_out = composed({
     http_method: "GET",
     path: "/c",
@@ -823,7 +846,7 @@ pub fn run_conformance() -> ConformanceReport {
 
   // R. subprotocol selection: the server picks the client's first offer it knows,
   //    in the client's order of preference, and `None` when there is no overlap.
-  let ws_offer = WebSocketScope::new(path="/ws", subprotocols=[
+  let ws_offer = @spec.WebSocketScope::new(path="/ws", subprotocols=[
     "graphql-transport-ws", "graphql-ws",
   ])
   check(
@@ -837,7 +860,7 @@ pub fn run_conformance() -> ConformanceReport {
   )
 
   // S. the tls extension: a named spec extension with zero coverage until now.
-  let tls : TlsExtension = {
+  let tls : @spec.TlsExtension = {
     server_cert: Some("-----BEGIN CERTIFICATE-----"),
     client_cert_chain: ["a", "b"],
     client_cert_name: Some("CN=heke1228"),
@@ -845,16 +868,18 @@ pub fn run_conformance() -> ConformanceReport {
     tls_version: Some(0x0304),
     cipher_suite: Some(0x1301),
   }
-  let with_tls = Extensions::none().with_tls(tls)
+  let with_tls = @spec.Extensions::none().with_tls(tls)
   check("tls/round-trips", with_tls.tls == Some(tls))
-  check("tls/absent-by-default", Extensions::none().tls is None)
+  check("tls/absent-by-default", @spec.Extensions::none().tls is None)
 
-  // T. streaming responses: `run_http_stream` lowers a StreamingResponse the same
-  //    way `run_http` lowers a Response.
-  let stream_scope = Http(HttpScope::new(http_method="GET", path="/stream"))
-  let streamed = run_http_stream(
+  // T. streaming responses: `@http.run_http_stream` lowers a @http.StreamingResponse the same
+  //    way `@http.run_http` lowers a @http.Response.
+  let stream_scope = @spec.Http(
+    @spec.HttpScope::new(http_method="GET", path="/stream"),
+  )
+  let streamed = @http.run_http_stream(
     fn(_req) {
-      StreamingResponse::new(status=200, headers=[("x-stream", "1")], chunks=[
+      @http.StreamingResponse::new(status=200, headers=[("x-stream", "1")], chunks=[
         b"one", b"two",
       ])
     },
@@ -864,7 +889,8 @@ pub fn run_conformance() -> ConformanceReport {
   check("stream/emits-start-and-chunks", streamed.length() >= 3)
   check(
     "stream/terminates-once",
-    streamed[streamed.length() - 1] is HttpResponseBody(more_body=false, ..),
+    streamed[streamed.length() - 1]
+    is @spec.HttpResponseBody(more_body=false, ..),
   )
 
   let failures : Array[String] = []
@@ -879,3 +905,6 @@ pub fn run_conformance() -> ConformanceReport {
     failures,
   }
 }
+
+///|
+pub extend ConformanceReport with Eq::{not_equal, equal}

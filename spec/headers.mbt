@@ -56,3 +56,15 @@ pub fn headers_to_wire(
 ) -> Array[(Bytes, Bytes)] {
   headers.map(fn(kv) { (latin1_encode(kv.0), latin1_encode(kv.1)) })
 }
+
+///|
+/// Split a request target into its path and raw query string on the first `?`;
+/// `"/a/b?x=1&y=2"` → `("/a/b", "x=1&y=2")`, `"/a/b"` → `("/a/b", "")`.
+pub fn split_target(target : String) -> (String, String) {
+  for i in 0..<target.length() {
+    if target[i].to_int() == 63 {
+      return (target[0:i].to_owned(), target[i + 1:].to_owned())
+    }
+  }
+  (target, "")
+}

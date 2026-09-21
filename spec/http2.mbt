@@ -193,3 +193,6 @@ pub fn HttpScope::from_h2_headers(
     ),
   )
 }
+
+///|
+pub extend Http2HeaderError with Eq::{not_equal, equal}

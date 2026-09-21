@@ -40,9 +40,9 @@ fn main {
   let inbound = [@moonasgi.Event::HttpRequest(body=b"", more_body=false)]
   for ev in @moonasgi.run_http(greet, scope, inbound) {
     match ev {
-      @moonasgi.HttpResponseStart(status~, ..) =>
+      @spec.HttpResponseStart(status~, ..) =>
         println("event       -> HttpResponseStart \{status}")
-      @moonasgi.HttpResponseBody(body~, ..) =>
+      @spec.HttpResponseBody(body~, ..) =>
         println("event       -> HttpResponseBody \{body.length()} bytes")
       _ => ()
     }

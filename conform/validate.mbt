@@ -101,7 +101,7 @@ fn has_pseudo_header(headers : Array[(String, String)]) -> Bool {
 /// response is fully sent. `HttpResponseDebug` must come once and before the start;
 /// `HttpResponsePush` only after it; `HttpResponsePathSend` cannot be mixed with a
 /// body. Returns the first violation, or `None` for a well-formed complete response.
-pub fn validate_http_response(events : Array[Event]) -> EventOrderError? {
+pub fn validate_http_response(events : Array[@spec.Event]) -> EventOrderError? {
   let mut started = false
   let mut complete = false
   let mut trailers_promised = false
@@ -219,7 +219,7 @@ pub fn validate_http_response(events : Array[Event]) -> EventOrderError? {
 /// (`WebSocketHttpResponseStart` + body); frames are only legal once accepted;
 /// nothing follows a close or a completed denial; a denial cannot mix with an
 /// accept. Returns the first violation, or `None` for a well-formed stream.
-pub fn validate_ws_response(events : Array[Event]) -> EventOrderError? {
+pub fn validate_ws_response(events : Array[@spec.Event]) -> EventOrderError? {
   let mut accepted = false
   let mut closed = false
   let mut denial_started = false
@@ -294,7 +294,9 @@ fn not_answered(accepted : Bool, closed : Bool, denial_started : Bool) -> Bool {
 /// startup reply (`LifespanStartupComplete` / `LifespanStartupFailed`) before a
 /// shutdown reply (`LifespanShutdownComplete` / `LifespanShutdownFailed`), each
 /// phase answered at most once. Returns the first violation, or `None`.
-pub fn validate_lifespan_replies(events : Array[Event]) -> EventOrderError? {
+pub fn validate_lifespan_replies(
+  events : Array[@spec.Event],
+) -> EventOrderError? {
   let mut startup_replied = false
   let mut shutdown_replied = false
   for ev in events {
@@ -329,8 +331,8 @@ pub fn validate_lifespan_replies(events : Array[Event]) -> EventOrderError? {
 /// server calls to check an application's emissions before writing them to the
 /// wire.
 pub fn validate_events(
-  scope : Scope,
-  events : Array[Event],
+  scope : @spec.Scope,
+  events : Array[@spec.Event],
 ) -> EventOrderError? {
   match scope {
     Http(_) => validate_http_response(events)
@@ -344,7 +346,7 @@ pub fn validate_events(
 /// one of `bytes` or `text` to be set on a `websocket.receive`, and a frame that sets
 /// neither, or both, is a server bug the application should not have to guess about.
 /// Returns `None` for a well-formed event.
-pub fn validate_inbound(event : Event) -> EventOrderError? {
+pub fn validate_inbound(event : @spec.Event) -> EventOrderError? {
   match event {
     WebSocketReceive(text~, bytes~) =>
       match (text, bytes) {
@@ -355,3 +357,6 @@ pub fn validate_inbound(event : Event) -> EventOrderError? {
     _ => None
   }
 }
+
+///|
+pub extend EventOrderError with Eq::{not_equal, equal}

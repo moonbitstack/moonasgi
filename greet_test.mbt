@@ -1,6 +1,6 @@
 // The greet showpiece drives one `.api` spec through mctl → moonapi (framework)
 // → moonzero (assembly + middleware) → mooncat (server), and the SEAM is the only
-// thing those repos share. These tests pin that exactly the Scope/Event shapes
+// thing those repos share. These tests pin that exactly the Scope/@moonasgi.Event shapes
 // greet uses round-trip losslessly through the seam's synchronous cores, so a
 // green run here is a standing proof the seam is greet-ready before any of the
 // consuming repos is wired up.
@@ -13,8 +13,8 @@ fn json_response(
   status : Int,
   extra : Array[(String, String)],
   value : Json,
-) -> Response {
-  Response::new(
+) -> @moonasgi.Response {
+  @moonasgi.Response::new(
     status,
     [("content-type", "application/json"), ..extra],
     @utf8.encode(value.stringify()),
@@ -25,7 +25,7 @@ fn json_response(
 /// The greeting prefix a lifespan startup seeds into `scope.state`. A request
 /// scope carries a copy of the lifespan state (mooncat copies it on), so reading
 /// it here proves the state survived the lifespan→request hop through the seam.
-fn greet_prefix(hs : HttpScope) -> String {
+fn greet_prefix(hs : @moonasgi.HttpScope) -> String {
   match hs.state.get("greeting_prefix") {
     Some(String(s)) => s
     _ => "Hello"
@@ -74,10 +74,10 @@ fn openapi_doc() -> Json {
 ///|
 /// A representative moonapi-shaped application, bound at the scope level the way
 /// a framework binds: it dispatches on method + path, reads `root_path` and the
-/// lifespan-seeded `state` off the full `HttpScope`, drains the request body, and
+/// lifespan-seeded `state` off the full `@moonasgi.HttpScope`, drains the request body, and
 /// returns the exact outbound events it would push. This is the `greet` service's
 /// routing surface — health, a validated greet, and the served OpenAPI doc.
-fn greet_app(hs : HttpScope, body : Bytes) -> Array[Event] {
+fn greet_app(hs : @moonasgi.HttpScope, body : Bytes) -> Array[@moonasgi.Event] {
   match (hs.http_method, hs.path) {
     ("GET", "/ping") =>
       json_response(
@@ -115,12 +115,14 @@ fn greet_app(hs : HttpScope, body : Bytes) -> Array[Event] {
 /// the seam's own verdict on whether the events it emitted are well-formed, so
 /// every case asserts round-trip fidelity and spec-compliant ordering at once.
 fn drive_greet(
-  hs : HttpScope,
+  hs : @moonasgi.HttpScope,
   body : Bytes,
-) -> (TestResponse, EventOrderError?) {
-  let sc = Http(hs)
-  let ev = run_http_scoped(greet_app, sc, [HttpRequest(body~, more_body=false)])
-  (reassemble(ev), validate_events(sc, ev))
+) -> (@moonasgi.TestResponse, @moonasgi.EventOrderError?) {
+  let sc = @spec.Http(hs)
+  let ev = @http.run_http_scoped(greet_app, sc, [
+    @spec.HttpRequest(body~, more_body=false),
+  ])
+  (@client.reassemble(ev), @conform.validate_events(sc, ev))
 }
 
 ///|
@@ -137,8 +139,8 @@ fn json_str(j : Json, key : String) -> String? {
 }
 
 ///|
-/// Parse a `TestResponse` body as JSON or fail the test.
-fn body_json(r : TestResponse) -> Json {
+/// Parse a `@moonasgi.TestResponse` body as JSON or fail the test.
+fn body_json(r : @moonasgi.TestResponse) -> Json {
   try r.json() catch {
     _ => abort("response body was not valid JSON")
   } noraise {
@@ -150,11 +152,11 @@ fn body_json(r : TestResponse) -> Json {
 /// moonapi routing round-trips through the scope-aware seam core: request line,
 /// query, body, headers, `root_path`, and the served response all survive
 /// lowering to events and reassembly, and every emitted stream is well-formed.
-test "greet: moonapi http routing round-trips through run_http_scoped" {
+test "greet: moonapi http routing round-trips through @http.run_http_scoped" {
   // Health check: GET /ping. The framework reads root_path off the scope (the
   // ergonomic Request drops it) and stamps it onto the response.
   let (ping, ping_v) = drive_greet(
-    HttpScope::new(http_method="GET", path="/ping", root_path="/api"),
+    @moonasgi.HttpScope::new(http_method="GET", path="/ping", root_path="/api"),
     b"",
   )
   assert_eq(ping_v is None, true)
@@ -165,14 +167,14 @@ test "greet: moonapi http routing round-trips through run_http_scoped" {
 
   // Validated POST /greet: a well-formed body greets, a malformed one 422s.
   let (ok, ok_v) = drive_greet(
-    HttpScope::new(http_method="POST", path="/greet"),
+    @moonasgi.HttpScope::new(http_method="POST", path="/greet"),
     @utf8.encode("{\"name\":\"Leo\"}"),
   )
   assert_eq(ok_v is None, true)
   assert_eq(ok.status, 200)
   assert_eq(json_str(body_json(ok), "message"), Some("Hello, Leo!"))
   let (bad, bad_v) = drive_greet(
-    HttpScope::new(http_method="POST", path="/greet"),
+    @moonasgi.HttpScope::new(http_method="POST", path="/greet"),
     @utf8.encode("{\"nope\":1}"),
   )
   assert_eq(bad_v is None, true)
@@ -181,7 +183,7 @@ test "greet: moonapi http routing round-trips through run_http_scoped" {
 
   // The served OpenAPI document round-trips as structured JSON, not a blob.
   let (spec, spec_v) = drive_greet(
-    HttpScope::new(http_method="GET", path="/openapi.json"),
+    @moonasgi.HttpScope::new(http_method="GET", path="/openapi.json"),
     b"",
   )
   assert_eq(spec_v is None, true)
@@ -195,7 +197,7 @@ test "greet: moonapi http routing round-trips through run_http_scoped" {
 
   // An unknown route 404s through the same path.
   let (miss, miss_v) = drive_greet(
-    HttpScope::new(http_method="GET", path="/nope"),
+    @moonasgi.HttpScope::new(http_method="GET", path="/nope"),
     b"",
   )
   assert_eq(miss_v is None, true)
@@ -203,109 +205,124 @@ test "greet: moonapi http routing round-trips through run_http_scoped" {
 }
 
 ///|
-/// A streamed request body — several `HttpRequest` chunks the server feeds in as
+/// A streamed request body — several `@spec.HttpRequest` chunks the server feeds in as
 /// it reads the socket — reassembles into the exact bytes the framework parses,
 /// so a chunked upload greets identically to a buffered one.
 test "greet: a chunked request body drains losslessly into the framework" {
-  let sc = Http(HttpScope::new(http_method="POST", path="/greet"))
+  let sc = @spec.Http(
+    @moonasgi.HttpScope::new(http_method="POST", path="/greet"),
+  )
   // "{\"name\":\"Ada\"}" split across three inbound frames.
   let inbound = [
-    HttpRequest(body=@utf8.encode("{\"na"), more_body=true),
-    HttpRequest(body=@utf8.encode("me\":\"A"), more_body=true),
-    HttpRequest(body=@utf8.encode("da\"}"), more_body=false),
+    @spec.HttpRequest(body=@utf8.encode("{\"na"), more_body=true),
+    @spec.HttpRequest(body=@utf8.encode("me\":\"A"), more_body=true),
+    @spec.HttpRequest(body=@utf8.encode("da\"}"), more_body=false),
   ]
-  let ev = run_http_scoped(greet_app, sc, inbound)
-  assert_eq(validate_events(sc, ev) is None, true)
-  let r = reassemble(ev)
+  let ev = @http.run_http_scoped(greet_app, sc, inbound)
+  assert_eq(@conform.validate_events(sc, ev) is None, true)
+  let r = @client.reassemble(ev)
   assert_eq(r.status, 200)
   assert_eq(json_str(body_json(r), "message"), Some("Hello, Ada!"))
 }
 
 ///|
-/// The lifespan a server runs at boot round-trips through `run_lifespan`: startup
+/// The lifespan a server runs at boot round-trips through `@lifespan.run_lifespan`: startup
 /// seeds `scope.state` in place, the server copies that state onto each request
 /// scope, and the framework reads it back — the exact hop greet uses to share a
 /// DB pool / config with every request. Shutdown replies complete, and a failed
 /// startup short-circuits the way ASGI pins.
 test "greet: lifespan startup seeds state that reaches the request handler" {
-  let boot = LifespanScope::new()
-  let handler = LifespanHandler::new(on_startup=fn(s) {
+  let boot = @moonasgi.LifespanScope::new()
+  let handler = @moonasgi.LifespanHandler::new(on_startup=fn(s) {
     // A framework's startup hook populates scope.state in place.
     s.state["greeting_prefix"] = Json::string("Bonjour")
     s.state["db_pool"] = Json::string("pool://greet")
     Complete
   })
-  let ls_scope = Lifespan(boot)
-  let up = run_lifespan(handler, ls_scope, [LifespanStartup])
+  let ls_scope = @spec.Lifespan(boot)
+  let up = @lifespan.run_lifespan(handler, ls_scope, [LifespanStartup])
   assert_eq(up == [LifespanStartupComplete], true)
   assert_eq(boot.state.get("db_pool") is Some(_), true)
-  assert_eq(validate_events(ls_scope, up) is None, true)
+  assert_eq(@conform.validate_events(ls_scope, up) is None, true)
 
   // mooncat copies the lifespan state onto each request scope; the framework
   // greets with the prefix that startup seeded, proving the state carried across.
   let (r, v) = drive_greet(
-    HttpScope::new(http_method="POST", path="/greet", state=boot.state),
+    @moonasgi.HttpScope::new(
+      http_method="POST",
+      path="/greet",
+      state=boot.state,
+    ),
     @utf8.encode("{\"name\":\"Grace\"}"),
   )
   assert_eq(v is None, true)
   assert_eq(json_str(body_json(r), "message"), Some("Bonjour, Grace!"))
 
   // Shutdown completes, and the full startup→shutdown cycle validates in order.
-  let cycle = run_lifespan(handler, ls_scope, [
+  let cycle = @lifespan.run_lifespan(handler, ls_scope, [
     LifespanStartup,
     LifespanShutdown,
   ])
   assert_eq(cycle == [LifespanStartupComplete, LifespanShutdownComplete], true)
-  assert_eq(validate_events(ls_scope, cycle) is None, true)
+  assert_eq(@conform.validate_events(ls_scope, cycle) is None, true)
 
   // A failed startup aborts the boot: the server never proceeds to shutdown.
-  let failing = LifespanHandler::new(on_startup=fn(_s) {
+  let failing = @moonasgi.LifespanHandler::new(on_startup=fn(_s) {
     Failed(message="db unreachable")
   })
-  let failed = run_lifespan(failing, Lifespan(LifespanScope::new()), [
-    LifespanStartup,
-    LifespanShutdown,
-  ])
+  let failed = @lifespan.run_lifespan(
+    failing,
+    @spec.Lifespan(@moonasgi.LifespanScope::new()),
+    [LifespanStartup, LifespanShutdown],
+  )
   assert_eq(failed == [LifespanStartupFailed(message="db unreachable")], true)
 }
 
 ///|
 /// The moonzero middleware chain composes over a greet handler and drives end to
-/// end through the `TestClient` (the ergonomic path a request-oriented handler
+/// end through the `@moonasgi.TestClient` (the ergonomic path a request-oriented handler
 /// takes): request-id, CORS, and logging headers land outermost-first and the
 /// body round-trips untouched.
-test "greet: the moonzero middleware chain round-trips through the TestClient" {
-  let request_id : Middleware = fn(next) {
+test "greet: the moonzero middleware chain round-trips through the @moonasgi.TestClient" {
+  let request_id : @moonasgi.Middleware = fn(next) {
     fn(req) {
       let r = next(req)
-      Response::new(r.status, [("x-request-id", "req-42"), ..r.headers], r.body)
+      @moonasgi.Response::new(
+        r.status,
+        [("x-request-id", "req-42"), ..r.headers],
+        r.body,
+      )
     }
   }
-  let cors : Middleware = fn(next) {
+  let cors : @moonasgi.Middleware = fn(next) {
     fn(req) {
       let r = next(req)
-      Response::new(
+      @moonasgi.Response::new(
         r.status,
         [("access-control-allow-origin", "*"), ..r.headers],
         r.body,
       )
     }
   }
-  let base : Handler = fn(req) {
+  let base : @moonasgi.Handler = fn(req) {
     json_response(
       200,
       [("x-core", "hit")],
       { "echo": @utf8.decode_lossy(req.body[:]) }.to_json(),
     )
   }
-  let logging : Middleware = fn(next) {
+  let logging : @moonasgi.Middleware = fn(next) {
     fn(req) {
       let r = next(req)
-      Response::new(r.status, [("x-logged", req.path), ..r.headers], r.body)
+      @moonasgi.Response::new(
+        r.status,
+        [("x-logged", req.path), ..r.headers],
+        r.body,
+      )
     }
   }
-  let app = compose([request_id, cors, logging], base)
-  let client = TestClient::new(app)
+  let app = @http.compose([request_id, cors, logging], base)
+  let client = @moonasgi.TestClient::new(app)
   let r = client.post("/greet", body=@utf8.encode("payload"))
   assert_eq(r.status, 200)
   // Outermost middleware ran last on the way out, so its header sits first.
@@ -317,15 +334,15 @@ test "greet: the moonzero middleware chain round-trips through the TestClient" {
 }
 
 ///|
-/// The greet chat endpoint: a WebSocket app accepts with a negotiated
+/// The greet chat endpoint: a @spec.WebSocket app accepts with a negotiated
 /// subprotocol, echoes each text/binary frame, and closes on disconnect — the
 /// accept/receive/send/close cycle greet's chat uses, round-tripped through
-/// `ws_run` / the `TestClient` with no socket.
-test "greet: websocket chat accepts, echoes, and closes through ws_run" {
-  let client = TestClient::new(fn(_r) { Response::text("") })
+/// `@ws.ws_run` / the `@moonasgi.TestClient` with no socket.
+test "greet: websocket chat accepts, echoes, and closes through @ws.ws_run" {
+  let client = @moonasgi.TestClient::new(fn(_r) { @moonasgi.Response::text("") })
   // A chat handler: accept with a negotiated subprotocol, echo each frame, and
   // close when the client says "bye" — the accept/receive/send/close cycle.
-  let chat = WebSocketHandler::new(
+  let chat = @moonasgi.WebSocketHandler::new(
     on_connect=fn(_s) { Accept(subprotocol=Some("greet.chat.v1"), headers=[]) },
     on_receive=fn(m) {
       match m {
@@ -354,13 +371,13 @@ test "greet: websocket chat accepts, echoes, and closes through ws_run" {
   assert_eq(session.close_code, Some(1000))
   assert_eq(session.close_reason, Some("bye"))
   // The raw driver output is a well-formed handshake+frames+close stream.
-  let scope = WebSocket(WebSocketScope::new(path="/chat"))
-  let raw = ws_run(WebSocketHandler::echo(), scope, [
+  let scope = @spec.WebSocket(@moonasgi.WebSocketScope::new(path="/chat"))
+  let raw = @ws.ws_run(@moonasgi.WebSocketHandler::echo(), scope, [
     WebSocketConnect,
     WebSocketReceive(text=Some("x"), bytes=None),
     WebSocketDisconnect(code=1000, reason=None),
   ])
-  assert_eq(validate_ws_response(raw) is None, true)
+  assert_eq(@conform.validate_ws_response(raw) is None, true)
 }
 
 ///|
@@ -368,8 +385,8 @@ test "greet: websocket chat accepts, echoes, and closes through ws_run" {
 /// several body chunks (`more_body: true`), and the client reassembles them into
 /// the contiguous body a real client would read, ordering intact.
 test "greet: an SSE stream reassembles chunk-for-chunk" {
-  let sse : StreamHandler = fn(_req) {
-    StreamingResponse::new(
+  let sse : @moonasgi.StreamHandler = fn(_req) {
+    @moonasgi.StreamingResponse::new(
       status=200,
       headers=[("content-type", "text/event-stream")],
       chunks=[b"data: one\n\n", b"data: two\n\n", b"data: three\n\n"],
@@ -383,8 +400,8 @@ test "greet: an SSE stream reassembles chunk-for-chunk" {
     headers: [],
     body: b"",
   }).events()
-  assert_eq(validate_http_response(events) is None, true)
-  let client = TestClient::from_stream(sse)
+  assert_eq(@conform.validate_http_response(events) is None, true)
+  let client = @moonasgi.TestClient::from_stream(sse)
   let r = client.get("/events")
   assert_eq(r.status, 200)
   assert_eq(r.header("content-type"), Some("text/event-stream"))

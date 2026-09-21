@@ -1,4 +1,6 @@
 import {
+  "moonbitstack/moonasgi/lifespan",
+  "moonbitstack/moonasgi/spec",
   "moonbitstack/moonasgi",
 }
 

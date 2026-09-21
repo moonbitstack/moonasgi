@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonasgi/lifespan"
+
+import {
+  "moonbitstack/moonasgi/spec",
+}
+
+// Values
+pub fn run_lifespan(LifespanHandler, @spec.Scope, Array[@spec.Event]) -> Array[@spec.Event]
+
+// Errors
+
+// Types and methods
+pub(all) struct LifespanHandler {
+  on_startup : (@spec.LifespanScope) -> LifespanReply
+  on_shutdown : (@spec.LifespanScope) -> LifespanReply
+}
+pub fn LifespanHandler::new(on_startup? : (@spec.LifespanScope) -> LifespanReply, on_shutdown? : (@spec.LifespanScope) -> LifespanReply) -> Self
+
+pub(all) enum LifespanReply {
+  Complete
+  Failed(message~ : String)
+} derive(Eq)
+pub fn LifespanReply::equal(Self, Self) -> Bool
+pub fn LifespanReply::not_equal(Self, Self) -> Bool
+
+// Type aliases
+
+// Traits

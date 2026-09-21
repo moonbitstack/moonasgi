@@ -1,0 +1,13 @@
+// 测试客户端：不开套接字，直接把请求喂给应用并收回响应。
+//
+// 位置相当于 Starlette 的 TestClient。
+import {
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/http",
+  "moonbitstack/moonasgi/ws",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+}
+
+import {
+} for "test"

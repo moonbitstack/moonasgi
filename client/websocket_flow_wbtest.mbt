@@ -3,29 +3,30 @@
 /// TestClient: the handshake is accepted, the offered subprotocol is negotiated,
 /// and every text/binary frame comes straight back — no socket, on every backend.
 test "ws_run echoes text and binary frames through the TestClient" {
-  let client = TestClient::new(fn(_r) { Response::text("") })
+  let client = TestClient::new(fn(_r) { @http.Response::text("") })
   let session = client.websocket(
     path="/chat",
-    handler=WebSocketHandler::echo(subprotocol=Some("chat")),
-    send=[Text("hello"), Binary(b"\x01\x02"), Text("bye")],
+    handler=@ws.WebSocketHandler::echo(subprotocol=Some("chat")),
+    send=[@ws.Text("hello"), @ws.Binary(b"\x01\x02"), @ws.Text("bye")],
   )
   assert_eq(session.accepted, true)
   assert_eq(session.subprotocol, Some("chat"))
   assert_eq(
-    session.messages == [Text("hello"), Binary(b"\x01\x02"), Text("bye")],
+    session.messages ==
+    [@ws.Text("hello"), @ws.Binary(b"\x01\x02"), @ws.Text("bye")],
     true,
   )
   assert_eq(session.texts(), ["hello", "bye"])
 }
 
 ///|
-/// `ws_run` on a non-websocket scope is a no-op, mirroring `run_http` on a
+/// `@ws.ws_run` on a non-websocket scope is a no-op, mirroring `run_http` on a
 /// non-http scope.
 test "ws_run is a no-op for non-websocket scopes" {
-  let out = ws_run(
-    WebSocketHandler::echo(),
-    Scope::Lifespan(LifespanScope::new()),
-    [Event::LifespanStartup],
+  let out = @ws.ws_run(
+    @ws.WebSocketHandler::echo(),
+    @spec.Scope::Lifespan(@spec.LifespanScope::new()),
+    [@spec.Event::LifespanStartup],
   )
   assert_eq(out.length(), 0)
 }
@@ -34,13 +35,13 @@ test "ws_run is a no-op for non-websocket scopes" {
 /// A handler that rejects the handshake emits a bare `WebSocketClose` with its
 /// code, never accepts, and never processes any received frames.
 test "ws handler can reject the handshake with a close code" {
-  let client = TestClient::new(fn(_r) { Response::text("") })
+  let client = TestClient::new(fn(_r) { @http.Response::text("") })
   let session = client.websocket(
     path="/ws",
-    handler=WebSocketHandler::new(on_connect=fn(_s) {
-      Reject(code=4403, reason="forbidden")
+    handler=@ws.WebSocketHandler::new(on_connect=fn(_s) {
+      @ws.Reject(code=4403, reason="forbidden")
     }),
-    send=[Text("never seen")],
+    send=[@ws.Text("never seen")],
   )
   assert_eq(session.accepted, false)
   assert_eq(session.closed, true)
@@ -54,11 +55,11 @@ test "ws handler can reject the handshake with a close code" {
 /// a full HTTP response (status + headers + body) rather than a bare close, and
 /// the client surfaces it as `WsTestSession.denial`.
 test "ws handler can deny the handshake with a full HTTP response" {
-  let client = TestClient::new(fn(_r) { Response::text("") })
+  let client = TestClient::new(fn(_r) { @http.Response::text("") })
   let session = client.websocket(
     path="/ws",
-    handler=WebSocketHandler::new(on_connect=fn(_s) {
-      DenyHttp(
+    handler=@ws.WebSocketHandler::new(on_connect=fn(_s) {
+      @ws.DenyHttp(
         status=401,
         headers=[("www-authenticate", "Bearer")],
         body=@utf8.encode("unauthorized"),
@@ -78,26 +79,26 @@ test "ws handler can deny the handshake with a full HTTP response" {
 
 ///|
 /// A handler that closes mid-stream ends the exchange: frames it sends before the
-/// `Close` are delivered, the session is marked closed, and later inbound
+/// `@ws.Close` are delivered, the session is marked closed, and later inbound
 /// messages are never handed to `on_receive`.
 test "ws handler closing mid-stream halts further receives" {
   let seen : Array[String] = []
-  let client = TestClient::new(fn(_r) { Response::text("") })
+  let client = TestClient::new(fn(_r) { @http.Response::text("") })
   let session = client.websocket(
     path="/ws",
-    handler=WebSocketHandler::new(on_receive=fn(m) {
+    handler=@ws.WebSocketHandler::new(on_receive=fn(m) {
       match m {
-        Text(t) => {
+        @ws.Text(t) => {
           seen.push(t)
-          [SendText("ack:" + t), Close(code=1000, reason="done")]
+          [@ws.SendText("ack:" + t), @ws.Close(code=1000, reason="done")]
         }
-        Binary(_) => []
+        @ws.Binary(_) => []
       }
     }),
-    send=[Text("first"), Text("second")],
+    send=[@ws.Text("first"), @ws.Text("second")],
     disconnect=None,
   )
-  assert_eq(session.messages == [Text("ack:first")], true)
+  assert_eq(session.messages == [@ws.Text("ack:first")], true)
   assert_eq(session.closed, true)
   // on_receive ran only for the first message; the close halted the stream.
   assert_eq(seen, ["first"])
@@ -109,20 +110,20 @@ test "ws handler closing mid-stream halts further receives" {
 /// sequence — here it reflects the negotiated subprotocol and the inbound frame
 /// count into the accept response.
 test "websocket_app exposes the full scope and inbound stream" {
-  let client = TestClient::new(fn(_r) { Response::text("") })
+  let client = TestClient::new(fn(_r) { @http.Response::text("") })
   let session = client.websocket_app(
     path="/ws",
-    app=fn(scope : WebSocketScope, inbound : Array[Event]) {
+    app=fn(scope : @spec.WebSocketScope, inbound : Array[@spec.Event]) {
       let count = inbound.length().to_string()
       [
-        WebSocketAccept(subprotocol=scope.subprotocols.get(0), headers=[
+        @spec.WebSocketAccept(subprotocol=scope.subprotocols.get(0), headers=[
           ("x-inbound", count),
         ]),
-        WebSocketSendText("frames=" + count),
+        @spec.WebSocketSendText("frames=" + count),
       ]
     },
     subprotocols=["v2"],
-    send=[Text("a"), Text("b")],
+    send=[@ws.Text("a"), @ws.Text("b")],
     disconnect=None,
   )
   assert_eq(session.accepted, true)
@@ -137,8 +138,8 @@ test "websocket_app exposes the full scope and inbound stream" {
 /// carrying early hints lowers them to `HttpResponseEarlyHint` events before the
 /// start, and the client captures each `103` message's Link values.
 test "early-hint extension round-trips through the TestClient" {
-  let handler : StreamHandler = fn(_r) {
-    StreamingResponse::new(chunks=[b"<html>"], early_hints=[
+  let handler : @http.StreamHandler = fn(_r) {
+    @http.StreamingResponse::new(chunks=[b"<html>"], early_hints=[
       ["</style.css>; rel=preload; as=style"],
       ["</app.js>; rel=preload; as=script"],
     ])
@@ -156,13 +157,13 @@ test "early-hint extension round-trips through the TestClient" {
 /// a lifespan scope carries `2.0`, and each is reachable via the typed
 /// constructors.
 test "per-subprotocol asgi spec_version defaults" {
-  assert_eq(AsgiVersion::http().spec_version, "2.5")
-  assert_eq(AsgiVersion::websocket().spec_version, "2.5")
-  assert_eq(AsgiVersion::lifespan().spec_version, "2.0")
-  assert_eq(LifespanScope::new().asgi.spec_version, "2.0")
+  assert_eq(@spec.AsgiVersion::http().spec_version, "2.5")
+  assert_eq(@spec.AsgiVersion::websocket().spec_version, "2.5")
+  assert_eq(@spec.AsgiVersion::lifespan().spec_version, "2.0")
+  assert_eq(@spec.LifespanScope::new().asgi.spec_version, "2.0")
   assert_eq(
-    HttpScope::new(http_method="GET", path="/").asgi.spec_version,
+    @spec.HttpScope::new(http_method="GET", path="/").asgi.spec_version,
     "2.5",
   )
-  assert_eq(WebSocketScope::new(path="/").asgi.spec_version, "2.5")
+  assert_eq(@spec.WebSocketScope::new(path="/").asgi.spec_version, "2.5")
 }

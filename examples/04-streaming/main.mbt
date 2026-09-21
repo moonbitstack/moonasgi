@@ -65,7 +65,7 @@ fn main {
     @moonasgi.HttpScope::new(http_method="GET", path="/events"),
   )
   let raw = @moonasgi.run_http_stream(sse, scope, [
-    @moonasgi.HttpRequest(body=b"", more_body=false),
+    @spec.HttpRequest(body=b"", more_body=false),
   ])
   println("run_http_stream -> \{raw.length()} events")
 }

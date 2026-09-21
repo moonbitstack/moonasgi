@@ -1,0 +1,7 @@
+// WebSocket 作用域的接缝：握手、接受、发送与关闭码。帧的编解码不在这里，
+// 在 moonhttp/ws。
+//
+// 规范：https://asgi.readthedocs.io/en/latest/specs/www.html#websocket
+import {
+  "moonbitstack/moonasgi/spec",
+}

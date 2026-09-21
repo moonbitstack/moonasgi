@@ -1,0 +1,10 @@
+// 一致性套件：给任何 ASGI 实现跑的合规检查，与消息顺序的校验。
+//
+// 规范：https://asgi.readthedocs.io/en/latest/specs/main.html
+import {
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/http",
+  "moonbitstack/moonasgi/ws",
+  "moonbitstack/moonasgi/lifespan",
+  "moonbitstack/moonasgi/client",
+}

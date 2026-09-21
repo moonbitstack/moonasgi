@@ -1,0 +1,79 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonasgi/http"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitstack/moonasgi/spec",
+}
+
+// Values
+pub fn compose(Array[((Request) -> Response) -> (Request) -> Response], (Request) -> Response) -> (Request) -> Response
+
+pub fn run_http((Request) -> Response, @spec.Scope, Array[@spec.Event]) -> Array[@spec.Event]
+
+pub fn run_http_app((Request) -> Array[@spec.Event], @spec.Scope, Array[@spec.Event]) -> Array[@spec.Event]
+
+pub fn run_http_scoped((@spec.HttpScope, Bytes) -> Array[@spec.Event], @spec.Scope, Array[@spec.Event]) -> Array[@spec.Event]
+
+pub fn run_http_scoped_drain((@spec.HttpScope, Bytes, Drain) -> Array[@spec.Event], @spec.Scope, Array[@spec.Event]) -> Array[@spec.Event]
+
+pub fn run_http_stream((Request) -> StreamingResponse, @spec.Scope, Array[@spec.Event]) -> Array[@spec.Event]
+
+pub fn to_asgi((Request) -> Response) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+
+// Errors
+
+// Types and methods
+pub(all) enum Drain {
+  Complete
+  Disconnected
+  Truncated
+} derive(Eq, @debug.Debug)
+pub fn Drain::equal(Self, Self) -> Bool
+pub fn Drain::not_equal(Self, Self) -> Bool
+pub fn Drain::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Request {
+  http_method : String
+  path : String
+  query_string : Bytes
+  headers : Array[(String, String)]
+  body : Bytes
+} derive(Eq)
+pub fn Request::equal(Self, Self) -> Bool
+pub fn Request::header(Self, String) -> String?
+pub fn Request::not_equal(Self, Self) -> Bool
+
+pub(all) struct Response {
+  status : Int
+  headers : Array[(String, String)]
+  body : Bytes
+} derive(Eq)
+pub fn Response::equal(Self, Self) -> Bool
+pub fn Response::events(Self) -> Array[@spec.Event]
+pub fn Response::header(Self, String) -> String?
+pub fn Response::json(status? : Int, Json) -> Self
+pub fn Response::new(Int, Array[(String, String)], Bytes) -> Self
+pub fn Response::not_equal(Self, Self) -> Bool
+pub fn Response::text(status? : Int, String) -> Self
+
+pub(all) struct StreamingResponse {
+  status : Int
+  headers : Array[(String, String)]
+  chunks : Array[Bytes]
+  trailers : Array[(String, String)]
+  early_hints : Array[Array[String]]
+} derive(Eq)
+pub fn StreamingResponse::equal(Self, Self) -> Bool
+pub fn StreamingResponse::events(Self) -> Array[@spec.Event]
+pub fn StreamingResponse::new(chunks~ : Array[Bytes], status? : Int, headers? : Array[(String, String)], trailers? : Array[(String, String)], early_hints? : Array[Array[String]]) -> Self
+pub fn StreamingResponse::not_equal(Self, Self) -> Bool
+
+// Type aliases
+pub type Handler = (Request) -> Response
+
+pub type Middleware = ((Request) -> Response) -> (Request) -> Response
+
+pub type StreamHandler = (Request) -> StreamingResponse
+
+// Traits

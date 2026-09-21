@@ -1,0 +1,67 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonasgi/conform"
+
+import {
+  "moonbitstack/moonasgi/spec",
+}
+
+// Values
+pub fn run_conformance() -> ConformanceReport
+
+pub fn validate_events(@spec.Scope, Array[@spec.Event]) -> EventOrderError?
+
+pub fn validate_http_response(Array[@spec.Event]) -> EventOrderError?
+
+pub fn validate_inbound(@spec.Event) -> EventOrderError?
+
+pub fn validate_lifespan_replies(Array[@spec.Event]) -> EventOrderError?
+
+pub fn validate_ws_response(Array[@spec.Event]) -> EventOrderError?
+
+// Errors
+
+// Types and methods
+pub(all) struct ConformanceReport {
+  total : Int
+  passed : Int
+  failures : Array[String]
+} derive(Eq)
+pub fn ConformanceReport::equal(Self, Self) -> Bool
+pub fn ConformanceReport::not_equal(Self, Self) -> Bool
+pub fn ConformanceReport::ok(Self) -> Bool
+
+pub(all) enum EventOrderError {
+  BodyBeforeStart
+  DuplicateResponseStart
+  EarlyHintAfterStart
+  BodyAfterComplete
+  UnexpectedTrailers
+  TrailersBeforeBody
+  MissingResponseStart
+  IncompleteBody
+  MissingTrailers
+  EventAfterComplete
+  DebugAfterStart
+  DuplicateDebug
+  PushBeforeStart
+  PathSendMixedWithBody
+  IllegalResponseHeader
+  FrameBeforeAccept
+  DuplicateAccept
+  EventAfterClose
+  DenialBodyBeforeStart
+  DenialAfterAccept
+  AcceptAfterDenial
+  IncompleteDenial
+  MissingHandshakeReply
+  DuplicateLifespanReply
+  ShutdownBeforeStartup
+  NonResponseEvent
+} derive(Eq)
+pub fn EventOrderError::describe(Self) -> String
+pub fn EventOrderError::equal(Self, Self) -> Bool
+pub fn EventOrderError::not_equal(Self, Self) -> Bool
+
+// Type aliases
+
+// Traits

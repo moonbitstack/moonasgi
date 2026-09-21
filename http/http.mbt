@@ -1,6 +1,6 @@
 ///|
 /// An inbound HTTP request in ergonomic form: the request line, headers, and the
-/// fully-read body. The sugar over `HttpScope` plus a drained `Receive`, so a
+/// fully-read body. The sugar over `@spec.HttpScope` plus a drained `Receive`, so a
 /// `Handler` never touches the async transport directly.
 pub(all) struct Request {
   http_method : String
@@ -59,9 +59,11 @@ pub fn StreamingResponse::new(
 /// and, if there are trailers, a terminating `HttpResponseTrailers`. An empty
 /// `chunks` still yields a single empty final body, so the stream is always
 /// well-formed.
-pub fn StreamingResponse::events(self : StreamingResponse) -> Array[Event] {
+pub fn StreamingResponse::events(
+  self : StreamingResponse,
+) -> Array[@spec.Event] {
   let has_trailers = self.trailers.length() > 0
-  let out : Array[Event] = []
+  let out : Array[@spec.Event] = []
   for links in self.early_hints {
     out.push(HttpResponseEarlyHint(links~))
   }
@@ -88,7 +90,7 @@ pub fn StreamingResponse::events(self : StreamingResponse) -> Array[Event] {
 
 ///|
 /// The ergonomic request→response function most handlers are written as. The
-/// synchronous sugar the suite lifts onto `AsgiApp` at the server boundary.
+/// synchronous sugar the suite lifts onto `@spec.AsgiApp` at the server boundary.
 pub type Handler = (Request) -> Response
 
 ///|
@@ -186,7 +188,7 @@ pub(all) enum Drain {
 /// `more_body`; a disconnect or a stray frame ends the drain.
 /// Shared by the async `to_asgi` loop and the synchronous `run_http` driver so
 /// both drain identically.
-fn absorb(buf : Buffer, event : Event) -> Bool {
+fn absorb(buf : Buffer, event : @spec.Event) -> Bool {
   match event {
     HttpRequest(body~, more_body~) => {
       buf.write_bytes(body[:])
@@ -198,7 +200,7 @@ fn absorb(buf : Buffer, event : Event) -> Bool {
 
 ///|
 /// Drain a body out of `inbound`, reporting why it stopped.
-fn drain_body_events(buf : Buffer, inbound : Array[Event]) -> Drain {
+fn drain_body_events(buf : Buffer, inbound : Array[@spec.Event]) -> Drain {
   for event in inbound {
     if event is HttpDisconnect {
       return Disconnected
@@ -213,7 +215,7 @@ fn drain_body_events(buf : Buffer, inbound : Array[Event]) -> Drain {
 ///|
 /// Assemble the ergonomic `Request` from an http scope and its fully-drained
 /// body.
-fn build_request(scope : HttpScope, body : Bytes) -> Request {
+fn build_request(scope : @spec.HttpScope, body : Bytes) -> Request {
   {
     http_method: scope.http_method,
     path: scope.path,
@@ -228,7 +230,7 @@ fn build_request(scope : HttpScope, body : Bytes) -> Request {
 /// `HttpResponseStart` carrying status and headers (no trailers), then a single
 /// `HttpResponseBody` with the whole body and `more_body: false`. The public
 /// `Response::events` for callers that want the lowered form directly.
-pub fn Response::events(self : Response) -> Array[Event] {
+pub fn Response::events(self : Response) -> Array[@spec.Event] {
   [
     HttpResponseStart(status=self.status, headers=self.headers, trailers=false),
     HttpResponseBody(body=self.body, more_body=false),
@@ -238,7 +240,7 @@ pub fn Response::events(self : Response) -> Array[Event] {
 ///|
 /// The scope-aware sans-transport core: drain the http request body from
 /// `inbound` (accumulating `HttpRequest` chunks until `more_body` is false) and
-/// hand `app` the full `HttpScope` alongside the assembled body, returning the
+/// hand `app` the full `@spec.HttpScope` alongside the assembled body, returning the
 /// outbound events `app` emits. This is the seam a framework binds to — a
 /// framework reads what the ergonomic `Request` drops: `root_path` (for mounted
 /// sub-apps), `extensions` (to gate a feature on what the server advertises),
@@ -248,10 +250,10 @@ pub fn Response::events(self : Response) -> Array[Event] {
 /// common drain-then-handle shape; `run_http_app` is the `Request`-level wrapper
 /// over it. Non-http scopes yield `[]`.
 pub fn run_http_scoped(
-  app : (HttpScope, Bytes) -> Array[Event],
-  scope : Scope,
-  inbound : Array[Event],
-) -> Array[Event] {
+  app : (@spec.HttpScope, Bytes) -> Array[@spec.Event],
+  scope : @spec.Scope,
+  inbound : Array[@spec.Event],
+) -> Array[@spec.Event] {
   match scope {
     Http(hs) => {
       let buf = Buffer()
@@ -269,10 +271,10 @@ pub fn run_http_scoped(
 /// it runs the handler to completion either way and the response goes nowhere.
 /// Non-http scopes yield `[]`.
 pub fn run_http_scoped_drain(
-  app : (HttpScope, Bytes, Drain) -> Array[Event],
-  scope : Scope,
-  inbound : Array[Event],
-) -> Array[Event] {
+  app : (@spec.HttpScope, Bytes, Drain) -> Array[@spec.Event],
+  scope : @spec.Scope,
+  inbound : Array[@spec.Event],
+) -> Array[@spec.Event] {
   match scope {
     Http(hs) => {
       let buf = Buffer()
@@ -290,10 +292,10 @@ pub fn run_http_scoped_drain(
 /// that only need the request line, headers, and body — every server and the
 /// `TestClient` drive a `Handler` through it. Non-http scopes yield `[]`.
 pub fn run_http_app(
-  app : (Request) -> Array[Event],
-  scope : Scope,
-  inbound : Array[Event],
-) -> Array[Event] {
+  app : (Request) -> Array[@spec.Event],
+  scope : @spec.Scope,
+  inbound : Array[@spec.Event],
+) -> Array[@spec.Event] {
   run_http_scoped(fn(hs, body) { app(build_request(hs, body)) }, scope, inbound)
 }
 
@@ -305,9 +307,9 @@ pub fn run_http_app(
 /// sans-transport core `to_asgi` mirrors with async `receive`/`send`.
 pub fn run_http(
   handler : Handler,
-  scope : Scope,
-  inbound : Array[Event],
-) -> Array[Event] {
+  scope : @spec.Scope,
+  inbound : Array[@spec.Event],
+) -> Array[@spec.Event] {
   run_http_app(fn(req) { handler(req).events() }, scope, inbound)
 }
 
@@ -319,14 +321,14 @@ pub fn run_http(
 /// counterpart of `run_http`.
 pub fn run_http_stream(
   handler : StreamHandler,
-  scope : Scope,
-  inbound : Array[Event],
-) -> Array[Event] {
+  scope : @spec.Scope,
+  inbound : Array[@spec.Event],
+) -> Array[@spec.Event] {
   run_http_app(fn(req) { handler(req).events() }, scope, inbound)
 }
 
 ///|
-/// Lift a synchronous `Handler` onto the load-bearing `AsgiApp` the server binds
+/// Lift a synchronous `Handler` onto the load-bearing `@spec.AsgiApp` the server binds
 /// to. For an http scope it drains the request body — looping `receive()` and
 /// accumulating `HttpRequest` chunks until `more_body` is false — assembles a
 /// `Request`, runs the handler, then emits `HttpResponseStart` followed by a
@@ -334,7 +336,7 @@ pub fn run_http_stream(
 /// this sugar covers request→response handlers only. Shares its drain, request
 /// assembly, and response serialisation with `run_http`, which tests the same
 /// logic without the async transport.
-pub fn to_asgi(handler : Handler) -> AsgiApp {
+pub fn to_asgi(handler : Handler) -> @spec.AsgiApp {
   (scope, receive, send) => {
     match scope {
       Http(hs) => {
@@ -351,3 +353,18 @@ pub fn to_asgi(handler : Handler) -> AsgiApp {
     }
   }
 }
+
+///|
+pub extend Request with Eq::{not_equal, equal}
+
+///|
+pub extend Response with Eq::{not_equal, equal}
+
+///|
+pub extend Drain with Debug::{to_repr}
+
+///|
+pub extend StreamingResponse with Eq::{not_equal, equal}
+
+///|
+pub extend Drain with Eq::{not_equal, equal}
