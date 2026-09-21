@@ -68,9 +68,7 @@ pub fn WebSocketHandler::new(
 /// An echo handler: accept the handshake (optionally negotiating `subprotocol`),
 /// then send every received message straight back — text as text, binary as
 /// binary. The canonical WebSocket smoke test.
-pub fn WebSocketHandler::echo(
-  subprotocol? : String? = None,
-) -> WebSocketHandler {
+pub fn WebSocketHandler::echo(subprotocol? : String) -> WebSocketHandler {
   WebSocketHandler::new(
     on_connect=fn(_s) { Accept(subprotocol~, headers=[]) },
     on_receive=fn(m) {

@@ -6,7 +6,7 @@ test "ws_run echoes text and binary frames through the TestClient" {
   let client = TestClient::new(fn(_r) { @http.Response::text("") })
   let session = client.websocket(
     path="/chat",
-    handler=@ws.WebSocketHandler::echo(subprotocol=Some("chat")),
+    handler=@ws.WebSocketHandler::echo(subprotocol="chat"),
     send=[@ws.Text("hello"), @ws.Binary(b"\x01\x02"), @ws.Text("bye")],
   )
   assert_eq(session.accepted, true)

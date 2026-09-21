@@ -253,8 +253,8 @@ pub fn TestClient::request(
     query_string=@utf8.encode(q),
     root_path=self.root_path,
     headers=[..self.base_headers, ..headers],
-    client=self.client,
-    server=self.server,
+    client?=self.client,
+    server?=self.server,
     extensions=self.extensions,
   )
   reassemble(
@@ -480,8 +480,8 @@ fn TestClient::ws_scope(
     query_string=@utf8.encode(q),
     root_path=self.root_path,
     headers=[..self.base_headers, ..headers],
-    client=self.client,
-    server=self.server,
+    client?=self.client,
+    server?=self.server,
     subprotocols~,
     asgi=@spec.AsgiVersion::websocket(),
     extensions=self.extensions,

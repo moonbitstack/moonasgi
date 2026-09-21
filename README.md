@@ -69,7 +69,7 @@ WebSocket app logic is testable in-process too, through the synchronous core `ws
 let client = TestClient::new(handler)
 let session = client.websocket(
   path="/chat",
-  handler=WebSocketHandler::echo(subprotocol=Some("chat")),
+  handler=WebSocketHandler::echo(subprotocol="chat"),
   send=[Text("hello"), Binary(b"\x01\x02")],
 )
 assert_eq(session.accepted, true)

@@ -18,7 +18,7 @@ pub(all) struct WebSocketHandler {
   on_receive : (WsMessage) -> Array[WsSend]
   on_disconnect : (Int, String?) -> Array[WsSend]
 }
-pub fn WebSocketHandler::echo(subprotocol? : String?) -> Self
+pub fn WebSocketHandler::echo(subprotocol? : String) -> Self
 pub fn WebSocketHandler::new(on_connect? : (@spec.WebSocketScope) -> WsAccept, on_receive? : (WsMessage) -> Array[WsSend], on_disconnect? : (Int, String?) -> Array[WsSend]) -> Self
 
 pub(all) enum WsAccept {

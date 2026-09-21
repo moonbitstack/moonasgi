@@ -153,8 +153,8 @@ pub fn run_conformance() -> ConformanceReport {
     query_string=b"k=v",
     root_path="/api",
     headers=[("host", "h")],
-    client=Some(("1.2.3.4", 5)),
-    server=Some(("9.8.7.6", Some(4))),
+    client=("1.2.3.4", 5),
+    server=("9.8.7.6", Some(4)),
     extensions=@spec.Extensions::none().enable_push(),
     state=Map([("k", Json::string("v"))]),
   )
@@ -179,8 +179,8 @@ pub fn run_conformance() -> ConformanceReport {
     query_string=b"t=1",
     root_path="/rt",
     headers=[("origin", "o")],
-    client=Some(("c", 1)),
-    server=Some(("s", Some(2))),
+    client=("c", 1),
+    server=("s", Some(2)),
     subprotocols=["chat", "json"],
     extensions=@spec.Extensions::none().enable_websocket_http_response(),
   )
@@ -207,16 +207,12 @@ pub fn run_conformance() -> ConformanceReport {
   let unix = @spec.HttpScope::new(
     http_method="GET",
     path="/",
-    server=Some(("/run/app.sock", None)),
+    server=("/run/app.sock", None),
   )
   check(
     "scope/unix-server",
     unix.server == Some(("/run/app.sock", None)) &&
-    @spec.HttpScope::new(
-      http_method="GET",
-      path="/",
-      server=Some(("h", Some(8080))),
-    ).server ==
+    @spec.HttpScope::new(http_method="GET", path="/", server=("h", Some(8080))).server ==
     Some(("h", Some(8080))),
   )
 
@@ -225,7 +221,7 @@ pub fn run_conformance() -> ConformanceReport {
   let echo = @client.TestClient::new(fn(_r) { @http.Response::text("") })
   let s_echo = echo.websocket(
     path="/ws",
-    handler=@ws.WebSocketHandler::echo(subprotocol=Some("chat")),
+    handler=@ws.WebSocketHandler::echo(subprotocol="chat"),
     send=[Text("a"), Binary(b"b"), Text("c")],
   )
   check(

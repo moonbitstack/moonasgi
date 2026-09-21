@@ -84,7 +84,7 @@ fn main {
 
   // 4. The built-in echo handler over the raw ws_run core.
   let raw = @moonasgi.ws_run(
-    @moonasgi.WebSocketHandler::echo(subprotocol=Some("chat.v1")),
+    @moonasgi.WebSocketHandler::echo(subprotocol="chat.v1"),
     @moonasgi.Scope::WebSocket(
       @moonasgi.WebSocketScope::new(path="/ws", subprotocols=["chat.v1"]),
     ),

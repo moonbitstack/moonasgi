@@ -40,8 +40,8 @@ fn main {
       http_method="POST",
       path="/greet",
       root_path="/api",
-      client=Some(("203.0.113.7", 52333)),
-      server=Some(("mooncat", Some(8080))),
+      client=("203.0.113.7", 52333),
+      server=("mooncat", Some(8080)),
       state=Map([("greeting", "Bonjour".to_json())]),
     ),
   )
