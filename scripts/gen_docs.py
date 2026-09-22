@@ -6,45 +6,45 @@ import re, html, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SECTIONS = [
-    ("core", "asgi.mbt", "Core SEAM",
+    ("core", "spec/asgi.mbt", "Core SEAM",
      "The load-bearing ASGI 3.0 seam: the typed Scope / Event contract and the "
      "async Receive / Send / AsgiApp callables every server and framework binds to."),
-    ("http2", "http2.mbt", "HTTP/2 pseudo-header lowering",
+    ("http2", "spec/http2.mbt", "HTTP/2 pseudo-header lowering",
      "HttpScope::from_h2_headers lowers an HTTP/2 (RFC 7540) or HTTP/3 HEADERS "
      "block into a scope the way a conforming server does: pseudo-headers "
      "consumed into the typed fields, host synthesised from :authority, and a "
      "malformed set rejected with the exact Http2HeaderError."),
-    ("sugar", "http.mbt", "Ergonomic sugar",
+    ("sugar", "http/http.mbt", "Ergonomic sugar",
      "The Request / Response / Handler / Middleware layer the suite lifts onto "
      "AsgiApp at the server boundary, plus the StreamingResponse, the scope-aware "
      "run_http_scoped a framework binds to, and the run_http / run_http_stream "
      "synchronous drivers."),
-    ("lifespan", "lifespan.mbt", "Lifespan core",
+    ("lifespan", "lifespan/lifespan.mbt", "Lifespan core",
      "The synchronous lifespan driver mirroring run_http: a startup / shutdown "
      "LifespanHandler that seeds scope.state in place, driven in-process by "
      "run_lifespan, with the failed-startup short-circuit ASGI pins."),
-    ("websocket", "websocket.mbt", "WebSocket core",
+    ("websocket", "ws/websocket.mbt", "WebSocket core",
      "The synchronous WebSocket core mirroring run_http: a connect / receive / "
      "disconnect WebSocketHandler (accept, subprotocols, echo, close, deny-with-"
      "HTTP) driven in-process by ws_run / ws_run_app on every backend."),
-    ("client", "client.mbt", "TestClient",
+    ("client", "client/client.mbt", "TestClient",
      "The in-process application driver built on the synchronous core: send a "
      "synthetic request (or drive a WebSocket connection), capture the "
      "reassembled response (body, trailers, pushes, pathsend, early hints) or "
      "WsTestSession — no socket, testable on every backend."),
-    ("conformance", "conformance.mbt", "Conformance harness",
+    ("conformance", "conform/conformance.mbt", "Conformance harness",
      "A table-driven self-test that drives every Event variant and every Scope "
      "field through run_http / ws_run / TestClient and asserts round-trip "
      "fidelity — reusable as run_conformance() to self-verify the seam wiring."),
-    ("validate", "validate.mbt", "Event-ordering validation",
+    ("validate", "conform/validate.mbt", "Event-ordering validation",
      "The ASGI ordering rules as code: validate_events walks an outbound stream "
      "and names the first violation (a body before the response starts, a frame "
      "before the handshake, and the rest), so a server can reject a buggy app."),
-    ("headers", "headers.mbt", "Headers",
+    ("headers", "spec/headers.mbt", "Headers",
      "The header representation both sides of the seam share: case-insensitive "
      "lookup over the raw byte pairs ASGI carries, without copying them into a map "
      "that would lose duplicates."),
-    ("legacy", "legacy.mbt", "ASGI 2.0 applications",
+    ("legacy", "spec/legacy.mbt", "ASGI 2.0 applications",
      "The legacy double-callable convention a 3.0 server is encouraged to keep "
      "running. MoonBit has no signature reflection, so there is no equivalent of "
      "asgiref's guarantee_single_callable: the two conventions are distinct types "
