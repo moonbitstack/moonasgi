@@ -4,8 +4,8 @@
 /// an empty `failures`. Reusable beyond the test suite — a server or framework
 /// built on the seam can call `run_conformance` to self-verify the wiring.
 pub(all) struct ConformanceReport {
-  total : Int
-  passed : Int
+  total : Int32
+  passed : Int32
   failures : Array[String]
 } derive(Eq)
 
@@ -34,7 +34,7 @@ fn all_event_variants() -> Array[@spec.Event] {
       count=Some(16),
       more_body=false,
     ),
-    HttpResponseDebug(info={ "trace": "abc" }.to_json()),
+    HttpResponseDebug(info=Json({ "trace": "abc" })),
     HttpResponseEarlyHint(links=["</a>; rel=preload"]),
     WebSocketConnect,
     WebSocketReceive(text=Some("hi"), bytes=None),
@@ -86,7 +86,7 @@ pub fn run_conformance() -> ConformanceReport {
 
   // B. http response round-trip through the @client.TestClient: status, headers and body
   //    survive lowering to events and reassembly.
-  let http_cases : Array[(Int, Array[(String, String)], Bytes)] = [
+  let http_cases : Array[(Int32, Array[(String, String)], Bytes)] = [
     (200, [("content-type", "text/plain")], b"ok"),
     (404, [], b""),
     (201, [("x-a", "1"), ("x-b", "2")], b"created"),
@@ -197,7 +197,7 @@ pub fn run_conformance() -> ConformanceReport {
     wss.extensions.websocket_http_response &&
     wss.asgi.spec_version == "2.5",
   )
-  let ls = @spec.LifespanScope::new(state=Map([("boot", true.to_json())]))
+  let ls = @spec.LifespanScope::new(state=Map([("boot", Json(true))]))
   check(
     "scope/lifespan-fields",
     ls.asgi.spec_version == "2.0" && ls.state.get("boot") is Some(_),
@@ -361,7 +361,7 @@ pub fn run_conformance() -> ConformanceReport {
   )
 
   // H. spec_version negotiation compares numerically across the dotted version.
-  let ver_cases : Array[(String, Int, Int, Bool)] = [
+  let ver_cases : Array[(String, Int32, Int32, Bool)] = [
     ("2.5", 2, 0, true),
     ("2.5", 2, 5, true),
     ("2.5", 2, 6, false),
@@ -418,7 +418,7 @@ pub fn run_conformance() -> ConformanceReport {
     // The debug message goes once, ahead of the response it annotates.
     (
       "debug+start+body",
-      [HttpResponseDebug(info={ "k": "v" }.to_json()), ok_start, ok_body],
+      [HttpResponseDebug(info=Json({ "k": "v" })), ok_start, ok_body],
     ),
   ]
   for vc in valid_http {
@@ -433,14 +433,14 @@ pub fn run_conformance() -> ConformanceReport {
     ),
     (
       "debug-after-start",
-      [ok_start, HttpResponseDebug(info={ "k": "v" }.to_json()), ok_body],
+      [ok_start, HttpResponseDebug(info=Json({ "k": "v" })), ok_body],
       DebugAfterStart,
     ),
     (
       "debug-twice",
       [
-        HttpResponseDebug(info={ "k": "v" }.to_json()),
-        HttpResponseDebug(info={ "k": "w" }.to_json()),
+        HttpResponseDebug(info=Json({ "k": "v" })),
+        HttpResponseDebug(info=Json({ "k": "w" })),
         ok_start,
         ok_body,
       ],
@@ -572,7 +572,7 @@ pub fn run_conformance() -> ConformanceReport {
   //    full cycle's ordering, and the failed-startup short-circuit ASGI pins.
   let boot_scope = @spec.LifespanScope::new()
   let boot = @lifespan.LifespanHandler::new(on_startup=fn(s) {
-    s.state["ready"] = true.to_json()
+    s.state["ready"] = Json(true)
     Complete
   })
   let ls_driven = @spec.Lifespan(boot_scope)

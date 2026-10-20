@@ -24,8 +24,8 @@
 fn main {
   let handler = @moonasgi.LifespanHandler::new(
     on_startup=fn(s) {
-      s.state["db_pool"] = "pool://heke1228".to_json()
-      s.state["greeting"] = "Bonjour".to_json()
+      s.state["db_pool"] = Json("pool://heke1228")
+      s.state["greeting"] = Json("Bonjour")
       @lifespan.Complete
     },
     on_shutdown=fn(_s) { @lifespan.Complete },

@@ -42,7 +42,7 @@ fn main {
       root_path="/api",
       client=("203.0.113.7", 52333),
       server=("mooncat", Some(8080)),
-      state=Map([("greeting", "Bonjour".to_json())]),
+      state=Map([("greeting", Json("Bonjour"))]),
     ),
   )
   // The body arrives as two frames; run_http_scoped drains them before the app.

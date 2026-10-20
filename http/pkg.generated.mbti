@@ -45,20 +45,20 @@ pub fn Request::header(Self, String) -> String?
 pub fn Request::not_equal(Self, Self) -> Bool
 
 pub(all) struct Response {
-  status : Int
+  status : Int32
   headers : Array[(String, String)]
   body : Bytes
 } derive(Eq)
 pub fn Response::equal(Self, Self) -> Bool
 pub fn Response::events(Self) -> Array[@spec.Event]
 pub fn Response::header(Self, String) -> String?
-pub fn Response::json(status? : Int, Json) -> Self
-pub fn Response::new(Int, Array[(String, String)], Bytes) -> Self
+pub fn Response::json(status? : Int32, Json) -> Self
+pub fn Response::new(Int32, Array[(String, String)], Bytes) -> Self
 pub fn Response::not_equal(Self, Self) -> Bool
-pub fn Response::text(status? : Int, String) -> Self
+pub fn Response::text(status? : Int32, String) -> Self
 
 pub(all) struct StreamingResponse {
-  status : Int
+  status : Int32
   headers : Array[(String, String)]
   chunks : Array[Bytes]
   trailers : Array[(String, String)]
@@ -66,7 +66,7 @@ pub(all) struct StreamingResponse {
 } derive(Eq)
 pub fn StreamingResponse::equal(Self, Self) -> Bool
 pub fn StreamingResponse::events(Self) -> Array[@spec.Event]
-pub fn StreamingResponse::new(chunks~ : Array[Bytes], status? : Int, headers? : Array[(String, String)], trailers? : Array[(String, String)], early_hints? : Array[Array[String]]) -> Self
+pub fn StreamingResponse::new(chunks~ : Array[Bytes], status? : Int32, headers? : Array[(String, String)], trailers? : Array[(String, String)], early_hints? : Array[Array[String]]) -> Self
 pub fn StreamingResponse::not_equal(Self, Self) -> Bool
 
 // Type aliases

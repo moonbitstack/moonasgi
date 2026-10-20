@@ -29,7 +29,7 @@ fn main {
       None => "-"
     }
   }
-  let opt_int = fn(o : Int?) -> String {
+  let opt_int = fn(o : Int32?) -> String {
     match o {
       Some(v) => v.to_string()
       None => "-"

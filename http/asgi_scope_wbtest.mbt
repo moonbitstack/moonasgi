@@ -51,7 +51,7 @@ test "Response::text and json constructors" {
   assert_eq(t.status, 200)
   assert_eq(t.header("content-type"), Some("text/plain; charset=utf-8"))
   assert_eq(t.body, @utf8.encode("hi"))
-  let j = Response::json(status=201, { "ok": true }.to_json())
+  let j = Response::json(status=201, Json({ "ok": true }))
   assert_eq(j.status, 201)
   assert_eq(j.header("content-type"), Some("application/json"))
   assert_eq(j.body, @utf8.encode("{\"ok\":true}"))
@@ -225,7 +225,7 @@ test "SEAM scope and event variants construct" {
       count=None,
       more_body=false,
     ),
-    @spec.Event::HttpResponseDebug(info={ "phase": "test" }.to_json()),
+    @spec.Event::HttpResponseDebug(info=Json({ "phase": "test" })),
     @spec.Event::HttpResponseEarlyHint(links=["</a.css>; rel=preload"]),
     @spec.Event::WebSocketConnect,
     @spec.Event::WebSocketReceive(text=Some("hi"), bytes=None),

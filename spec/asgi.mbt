@@ -60,8 +60,8 @@ pub fn AsgiVersion::lifespan() -> AsgiVersion {
 /// equality.
 pub fn AsgiVersion::at_least(
   self : AsgiVersion,
-  major~ : Int,
-  minor~ : Int,
+  major~ : Int32,
+  minor~ : Int32,
 ) -> Bool {
   let mut maj = 0
   let mut min = 0
@@ -91,8 +91,8 @@ pub(all) struct TlsExtension {
   client_cert_chain : Array[String]
   client_cert_name : String?
   client_cert_error : String?
-  tls_version : Int?
-  cipher_suite : Int?
+  tls_version : Int32?
+  cipher_suite : Int32?
 } derive(Eq)
 
 ///|
@@ -142,7 +142,7 @@ pub fn Extensions::none() -> Extensions {
 pub fn Extensions::enable(
   self : Extensions,
   name : String,
-  value? : Json = Json::object(Map([])),
+  value~ : Json = Json::object(Map([])),
 ) -> Extensions {
   let custom = Map([])
   for k, v in self.custom {
@@ -232,8 +232,8 @@ pub(all) struct HttpScope {
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
-  client : (String, Int)?
-  server : (String, Int?)?
+  client : (String, Int32)?
+  server : (String, Int32?)?
   asgi : AsgiVersion
   extensions : Extensions
   state : Map[String, Json]
@@ -248,17 +248,17 @@ pub(all) struct HttpScope {
 pub fn HttpScope::new(
   http_method~ : String,
   path~ : String,
-  http_version? : String = "1.1",
-  scheme? : String = "http",
+  http_version~ : String = "1.1",
+  scheme~ : String = "http",
   raw_path? : Bytes,
-  query_string? : Bytes = b"",
-  root_path? : String = "",
-  headers? : Array[(String, String)] = [],
-  client? : (String, Int),
-  server? : (String, Int?),
-  asgi? : AsgiVersion = AsgiVersion::default(),
-  extensions? : Extensions = Extensions::none(),
-  state? : Map[String, Json] = Map([]),
+  query_string~ : Bytes = b"",
+  root_path~ : String = "",
+  headers~ : Array[(String, String)] = [],
+  client? : (String, Int32),
+  server? : (String, Int32?),
+  asgi~ : AsgiVersion = AsgiVersion::default(),
+  extensions~ : Extensions = Extensions::none(),
+  state~ : Map[String, Json] = Map([]),
 ) -> HttpScope {
   {
     http_version,
@@ -289,8 +289,8 @@ pub(all) struct WebSocketScope {
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
-  client : (String, Int)?
-  server : (String, Int?)?
+  client : (String, Int32)?
+  server : (String, Int32?)?
   subprotocols : Array[String]
   asgi : AsgiVersion
   extensions : Extensions
@@ -304,18 +304,18 @@ pub(all) struct WebSocketScope {
 /// `path`.
 pub fn WebSocketScope::new(
   path~ : String,
-  http_version? : String = "1.1",
-  scheme? : String = "ws",
+  http_version~ : String = "1.1",
+  scheme~ : String = "ws",
   raw_path? : Bytes,
-  query_string? : Bytes = b"",
-  root_path? : String = "",
-  headers? : Array[(String, String)] = [],
-  client? : (String, Int),
-  server? : (String, Int?),
-  subprotocols? : Array[String] = [],
-  asgi? : AsgiVersion = AsgiVersion::default(),
-  extensions? : Extensions = Extensions::none(),
-  state? : Map[String, Json] = Map([]),
+  query_string~ : Bytes = b"",
+  root_path~ : String = "",
+  headers~ : Array[(String, String)] = [],
+  client? : (String, Int32),
+  server? : (String, Int32?),
+  subprotocols~ : Array[String] = [],
+  asgi~ : AsgiVersion = AsgiVersion::default(),
+  extensions~ : Extensions = Extensions::none(),
+  state~ : Map[String, Json] = Map([]),
 ) -> WebSocketScope {
   {
     http_version,
@@ -348,8 +348,8 @@ pub(all) struct LifespanScope {
 /// Build a `LifespanScope` with the lifespan `asgi` handshake (sub-spec `2.0`)
 /// and an empty `state` by default.
 pub fn LifespanScope::new(
-  asgi? : AsgiVersion = AsgiVersion::lifespan(),
-  state? : Map[String, Json] = Map([]),
+  asgi~ : AsgiVersion = AsgiVersion::lifespan(),
+  state~ : Map[String, Json] = Map([]),
 ) -> LifespanScope {
   { asgi, state, }
 }
@@ -364,7 +364,7 @@ pub(all) enum Event {
   HttpRequest(body~ : Bytes, more_body~ : Bool)
   HttpDisconnect
   HttpResponseStart(
-    status~ : Int,
+    status~ : Int32,
     headers~ : Array[(String, String)],
     trailers~ : Bool
   )
@@ -385,9 +385,9 @@ pub(all) enum Event {
   // `None` means "from the current position" / "to end of file"), emitted after
   // `HttpResponseStart`. `more_body` chains further body/zerocopysend messages.
   HttpResponseZeroCopySend(
-    fd~ : Int,
-    offset~ : Int?,
-    count~ : Int?,
+    fd~ : Int32,
+    offset~ : Int32?,
+    count~ : Int32?,
     more_body~ : Bool
   )
   // `http.response.debug` extension: an out-of-band `info` map a server may log
@@ -402,15 +402,15 @@ pub(all) enum Event {
   WebSocketReceive(text~ : String?, bytes~ : Bytes?)
   // ASGI 2.5 added `reason` to the disconnect event: the close reason the peer
   // sent, or `None` when it sent none (the code then defaults to `1005`).
-  WebSocketDisconnect(code~ : Int, reason~ : String?)
+  WebSocketDisconnect(code~ : Int32, reason~ : String?)
   WebSocketAccept(subprotocol~ : String?, headers~ : Array[(String, String)])
   WebSocketSendText(String)
   WebSocketSendBytes(Bytes)
-  WebSocketClose(code~ : Int, reason~ : String)
+  WebSocketClose(code~ : Int32, reason~ : String)
   // `websocket.http.response` extension: deny the handshake with a real HTTP
   // response instead of a bare close (start + body, mirroring the http path).
   WebSocketHttpResponseStart(
-    status~ : Int,
+    status~ : Int32,
     headers~ : Array[(String, String)],
     trailers~ : Bool
   )

@@ -10,7 +10,7 @@
 /// framework wants to stamp on (moonapi sets `x-root-path` from the scope, which
 /// the ergonomic `Request` drops).
 fn json_response(
-  status : Int,
+  status : Int32,
   extra : Array[(String, String)],
   value : Json,
 ) -> @moonasgi.Response {
@@ -83,7 +83,7 @@ fn greet_app(hs : @moonasgi.HttpScope, body : Bytes) -> Array[@moonasgi.Event] {
       json_response(
         200,
         [("x-root-path", hs.root_path)],
-        { "message": "pong" }.to_json(),
+        Json({ "message": "pong" }),
       ).events()
     ("GET", "/openapi.json") => json_response(200, [], openapi_doc()).events()
     ("POST", "/greet") =>
@@ -92,7 +92,7 @@ fn greet_app(hs : @moonasgi.HttpScope, body : Bytes) -> Array[@moonasgi.Event] {
           json_response(
             200,
             [],
-            { "message": greet_prefix(hs) + ", " + n + "!" }.to_json(),
+            Json({ "message": greet_prefix(hs) + ", " + n + "!" }),
           ).events()
         None =>
           json_response(
@@ -308,7 +308,7 @@ test "greet: the moonzero middleware chain round-trips through the @moonasgi.Tes
     json_response(
       200,
       [("x-core", "hit")],
-      { "echo": @utf8.decode_lossy(req.body[:]) }.to_json(),
+      Json({ "echo": @utf8.decode_lossy(req.body[:]) }),
     )
   }
   let logging : @moonasgi.Middleware = fn(next) {

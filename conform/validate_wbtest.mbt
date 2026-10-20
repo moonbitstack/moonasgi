@@ -88,7 +88,7 @@ test "validator names the violation and passes a clean stream" {
 /// The disconnect event carries the ASGI 2.5 `reason`, and the handler's
 /// `on_disconnect` receives both code and reason.
 test "on_disconnect receives the 2.5 close code and reason" {
-  let seen : Array[(Int, String?)] = []
+  let seen : Array[(Int32, String?)] = []
   let scope = @spec.WebSocket(@spec.WebSocketScope::new(path="/ws"))
   let _ = @ws.ws_run(
     @ws.WebSocketHandler::new(on_disconnect=fn(code, reason) {
@@ -114,7 +114,7 @@ test "zerocopysend and debug extensions round-trip through the @client.TestClien
   let app : (@http.Request) -> Array[@spec.Event] = fn(_req) {
     [
       @spec.HttpResponseStart(status=200, headers=[], trailers=false),
-      HttpResponseDebug(info={ "handler": "files" }.to_json()),
+      HttpResponseDebug(info=Json({ "handler": "files" })),
       HttpResponseZeroCopySend(
         fd=11,
         offset=Some(4),
@@ -135,7 +135,7 @@ test "zerocopysend and debug extensions round-trip through the @client.TestClien
     None => abort("expected a zerocopysend capture")
   }
   assert_eq(r.debug.length(), 1)
-  assert_eq(r.debug[0], { "handler": "files" }.to_json())
+  assert_eq(r.debug[0], Json({ "handler": "files" }))
 }
 
 ///|
@@ -148,10 +148,7 @@ test "a custom event type is neither rejected nor counted" {
   )
   let ok = validate_events(scope, [
     @spec.Event::@spec.HttpResponseStart(status=200, headers=[], trailers=false),
-    @spec.Event::Other(
-      type_="mychat.message",
-      payload={ "text": "hhh" }.to_json(),
-    ),
+    @spec.Event::Other(type_="mychat.message", payload=Json({ "text": "hhh" })),
     @spec.Event::@spec.HttpResponseBody(body=b"", more_body=false),
   ])
   assert_eq(ok is None, true)
@@ -168,7 +165,7 @@ test "a custom event type is neither rejected nor counted" {
 test "custom extensions are advertised and read back by name" {
   let ext = @spec.Extensions::none().enable(
     "mychat.presence",
-    value={ "max": 233 }.to_json(),
+    value=Json({ "max": 233 }),
   )
   assert_eq(ext.get("mychat.presence") is Some(_), true)
   assert_eq(ext.get("nope") is None, true)

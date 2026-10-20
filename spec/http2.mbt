@@ -67,7 +67,7 @@ pub fn percent_decode(target : String) -> Bytes {
 
 ///|
 /// One hex digit's value, or `None` for anything else.
-fn hex_digit(b : Byte) -> Int? {
+fn hex_digit(b : Byte) -> Int32? {
   let c = b.to_int()
   if c >= 0x30 && c <= 0x39 {
     Some(c - 0x30)
@@ -97,13 +97,13 @@ fn hex_digit(b : Byte) -> Int? {
 /// missing request-line field.
 pub fn HttpScope::from_h2_headers(
   headers : Array[(String, String)],
-  http_version? : String = "2",
-  root_path? : String = "",
-  client? : (String, Int),
-  server? : (String, Int?),
-  extensions? : Extensions = Extensions::none(),
-  asgi? : AsgiVersion = AsgiVersion::http(),
-  state? : Map[String, Json] = Map([]),
+  http_version~ : String = "2",
+  root_path~ : String = "",
+  client? : (String, Int32),
+  server? : (String, Int32?),
+  extensions~ : Extensions = Extensions::none(),
+  asgi~ : AsgiVersion = AsgiVersion::http(),
+  state~ : Map[String, Json] = Map([]),
 ) -> Result[HttpScope, Http2HeaderError] {
   let mut meth : String? = None
   let mut scheme : String? = None

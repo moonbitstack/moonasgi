@@ -15,7 +15,7 @@ pub(all) struct Request {
 /// middleware can decorate it before the server serialises it into
 /// `HttpResponseStart` + `HttpResponseBody`.
 pub(all) struct Response {
-  status : Int
+  status : Int32
   headers : Array[(String, String)]
   body : Bytes
 } derive(Eq)
@@ -30,7 +30,7 @@ pub(all) struct Response {
 /// `103 Early Hints` messages emitted ahead of the final response, each element
 /// a list of `Link` header values.
 pub(all) struct StreamingResponse {
-  status : Int
+  status : Int32
   headers : Array[(String, String)]
   chunks : Array[Bytes]
   trailers : Array[(String, String)]
@@ -43,10 +43,10 @@ pub(all) struct StreamingResponse {
 /// element becoming one `HttpResponseBody` frame.
 pub fn StreamingResponse::new(
   chunks~ : Array[Bytes],
-  status? : Int = 200,
-  headers? : Array[(String, String)] = [],
-  trailers? : Array[(String, String)] = [],
-  early_hints? : Array[Array[String]] = [],
+  status~ : Int32 = 200,
+  headers~ : Array[(String, String)] = [],
+  trailers~ : Array[(String, String)] = [],
+  early_hints~ : Array[Array[String]] = [],
 ) -> StreamingResponse {
   { status, headers, chunks, trailers, early_hints, }
 }
@@ -107,7 +107,7 @@ pub type Middleware = (Handler) -> Handler
 ///|
 /// Build a response from raw bytes.
 pub fn Response::new(
-  status : Int,
+  status : Int32,
   headers : Array[(String, String)],
   body : Bytes,
 ) -> Response {
@@ -152,7 +152,7 @@ pub fn compose(middlewares : Array[Middleware], base : Handler) -> Handler {
 ///|
 /// A `text/plain; charset=utf-8` response whose body is the UTF-8 encoding of
 /// `body`. The ergonomic constructor for the common string reply.
-pub fn Response::text(status? : Int = 200, body : String) -> Response {
+pub fn Response::text(status~ : Int32 = 200, body : String) -> Response {
   {
     status,
     headers: [("content-type", "text/plain; charset=utf-8")],
@@ -163,7 +163,7 @@ pub fn Response::text(status? : Int = 200, body : String) -> Response {
 ///|
 /// An `application/json` response whose body is the UTF-8 encoding of `value`
 /// serialised with `Json::stringify`. The ergonomic constructor for a JSON reply.
-pub fn Response::json(status? : Int = 200, value : Json) -> Response {
+pub fn Response::json(status~ : Int32 = 200, value : Json) -> Response {
   {
     status,
     headers: [("content-type", "application/json")],

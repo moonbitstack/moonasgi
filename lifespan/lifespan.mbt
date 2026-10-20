@@ -29,8 +29,8 @@ pub(all) struct LifespanHandler {
 /// anything, so a caller overrides only the phase it needs — an app that just
 /// wants a startup hook leaves `on_shutdown` alone.
 pub fn LifespanHandler::new(
-  on_startup? : (@spec.LifespanScope) -> LifespanReply = fn(_s) { Complete },
-  on_shutdown? : (@spec.LifespanScope) -> LifespanReply = fn(_s) { Complete },
+  on_startup~ : (@spec.LifespanScope) -> LifespanReply = fn(_s) { Complete },
+  on_shutdown~ : (@spec.LifespanScope) -> LifespanReply = fn(_s) { Complete },
 ) -> LifespanHandler {
   { on_startup, on_shutdown, }
 }

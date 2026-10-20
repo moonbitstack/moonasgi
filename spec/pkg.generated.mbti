@@ -32,7 +32,7 @@ pub(all) struct AsgiVersion {
   version : String
   spec_version : String
 } derive(Eq)
-pub fn AsgiVersion::at_least(Self, major~ : Int, minor~ : Int) -> Bool
+pub fn AsgiVersion::at_least(Self, major~ : Int32, minor~ : Int32) -> Bool
 pub fn AsgiVersion::default() -> Self
 pub fn AsgiVersion::equal(Self, Self) -> Bool
 pub fn AsgiVersion::http() -> Self
@@ -43,22 +43,22 @@ pub fn AsgiVersion::websocket() -> Self
 pub(all) enum Event {
   HttpRequest(body~ : Bytes, more_body~ : Bool)
   HttpDisconnect
-  HttpResponseStart(status~ : Int, headers~ : Array[(String, String)], trailers~ : Bool)
+  HttpResponseStart(status~ : Int32, headers~ : Array[(String, String)], trailers~ : Bool)
   HttpResponseBody(body~ : Bytes, more_body~ : Bool)
   HttpResponseTrailers(headers~ : Array[(String, String)], more_trailers~ : Bool)
   HttpResponsePush(path~ : String, headers~ : Array[(String, String)])
   HttpResponsePathSend(path~ : String)
-  HttpResponseZeroCopySend(fd~ : Int, offset~ : Int?, count~ : Int?, more_body~ : Bool)
+  HttpResponseZeroCopySend(fd~ : Int32, offset~ : Int32?, count~ : Int32?, more_body~ : Bool)
   HttpResponseDebug(info~ : Json)
   HttpResponseEarlyHint(links~ : Array[String])
   WebSocketConnect
   WebSocketReceive(text~ : String?, bytes~ : Bytes?)
-  WebSocketDisconnect(code~ : Int, reason~ : String?)
+  WebSocketDisconnect(code~ : Int32, reason~ : String?)
   WebSocketAccept(subprotocol~ : String?, headers~ : Array[(String, String)])
   WebSocketSendText(String)
   WebSocketSendBytes(Bytes)
-  WebSocketClose(code~ : Int, reason~ : String)
-  WebSocketHttpResponseStart(status~ : Int, headers~ : Array[(String, String)], trailers~ : Bool)
+  WebSocketClose(code~ : Int32, reason~ : String)
+  WebSocketHttpResponseStart(status~ : Int32, headers~ : Array[(String, String)], trailers~ : Bool)
   WebSocketHttpResponseBody(body~ : Bytes, more_body~ : Bool)
   LifespanStartup
   LifespanShutdown
@@ -117,14 +117,14 @@ pub(all) struct HttpScope {
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
-  client : (String, Int)?
-  server : (String, Int?)?
+  client : (String, Int32)?
+  server : (String, Int32?)?
   asgi : AsgiVersion
   extensions : Extensions
   state : Map[String, Json]
 }
-pub fn HttpScope::from_h2_headers(Array[(String, String)], http_version? : String, root_path? : String, client? : (String, Int), server? : (String, Int?), extensions? : Extensions, asgi? : AsgiVersion, state? : Map[String, Json]) -> Result[Self, Http2HeaderError]
-pub fn HttpScope::new(http_method~ : String, path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int), server? : (String, Int?), asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, Json]) -> Self
+pub fn HttpScope::from_h2_headers(Array[(String, String)], http_version? : String, root_path? : String, client? : (String, Int32), server? : (String, Int32?), extensions? : Extensions, asgi? : AsgiVersion, state? : Map[String, Json]) -> Result[Self, Http2HeaderError]
+pub fn HttpScope::new(http_method~ : String, path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int32), server? : (String, Int32?), asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, Json]) -> Self
 
 pub(all) struct LifespanScope {
   asgi : AsgiVersion
@@ -143,8 +143,8 @@ pub(all) struct TlsExtension {
   client_cert_chain : Array[String]
   client_cert_name : String?
   client_cert_error : String?
-  tls_version : Int?
-  cipher_suite : Int?
+  tls_version : Int32?
+  cipher_suite : Int32?
 } derive(Eq)
 pub fn TlsExtension::equal(Self, Self) -> Bool
 pub fn TlsExtension::not_equal(Self, Self) -> Bool
@@ -157,14 +157,14 @@ pub(all) struct WebSocketScope {
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
-  client : (String, Int)?
-  server : (String, Int?)?
+  client : (String, Int32)?
+  server : (String, Int32?)?
   subprotocols : Array[String]
   asgi : AsgiVersion
   extensions : Extensions
   state : Map[String, Json]
 }
-pub fn WebSocketScope::new(path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int), server? : (String, Int?), subprotocols? : Array[String], asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, Json]) -> Self
+pub fn WebSocketScope::new(path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int32), server? : (String, Int32?), subprotocols? : Array[String], asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, Json]) -> Self
 pub fn WebSocketScope::select_subprotocol(Self, Array[String]) -> String?
 
 // Type aliases

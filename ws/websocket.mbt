@@ -17,8 +17,8 @@ pub(all) enum WsMessage {
 /// + headers + body instead of a bare close).
 pub(all) enum WsAccept {
   Accept(subprotocol~ : String?, headers~ : Array[(String, String)])
-  Reject(code~ : Int, reason~ : String)
-  DenyHttp(status~ : Int, headers~ : Array[(String, String)], body~ : Bytes)
+  Reject(code~ : Int32, reason~ : String)
+  DenyHttp(status~ : Int32, headers~ : Array[(String, String)], body~ : Bytes)
 } derive(Eq)
 
 ///|
@@ -30,7 +30,7 @@ pub(all) enum WsAccept {
 pub(all) enum WsSend {
   SendText(String)
   SendBinary(Bytes)
-  Close(code~ : Int, reason~ : String)
+  Close(code~ : Int32, reason~ : String)
 } derive(Eq)
 
 ///|
@@ -46,7 +46,7 @@ pub(all) enum WsSend {
 pub(all) struct WebSocketHandler {
   on_connect : (@spec.WebSocketScope) -> WsAccept
   on_receive : (WsMessage) -> Array[WsSend]
-  on_disconnect : (Int, String?) -> Array[WsSend]
+  on_disconnect : (Int32, String?) -> Array[WsSend]
 }
 
 ///|
@@ -55,11 +55,11 @@ pub(all) struct WebSocketHandler {
 /// `on_disconnect` default to doing nothing. Callers override only the phases
 /// they care about.
 pub fn WebSocketHandler::new(
-  on_connect? : (@spec.WebSocketScope) -> WsAccept = fn(_s) {
+  on_connect~ : (@spec.WebSocketScope) -> WsAccept = fn(_s) {
     Accept(subprotocol=None, headers=[])
   },
-  on_receive? : (WsMessage) -> Array[WsSend] = fn(_m) { [] },
-  on_disconnect? : (Int, String?) -> Array[WsSend] = fn(_c, _r) { [] },
+  on_receive~ : (WsMessage) -> Array[WsSend] = fn(_m) { [] },
+  on_disconnect~ : (Int32, String?) -> Array[WsSend] = fn(_c, _r) { [] },
 ) -> WebSocketHandler {
   { on_connect, on_receive, on_disconnect, }
 }

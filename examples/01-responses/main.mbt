@@ -52,7 +52,7 @@ fn main {
   println("GET /text    -> \{t.status} \{t.text()} (\{ctype(t)})")
   let j = c.get("/json")
   let parsed = try j.json() catch {
-    _ => "".to_json()
+    _ => Json("")
   } noraise {
     v => v
   }

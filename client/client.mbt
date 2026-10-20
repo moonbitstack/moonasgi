@@ -22,9 +22,9 @@ pub fn PushPromise::header(self : PushPromise, name : String) -> String? {
 /// file descriptor the app handed off, and the optional byte `offset` / `count`.
 /// The sans-transport analog of the server performing the zero-copy send.
 pub(all) struct ZeroCopySend {
-  fd : Int
-  offset : Int?
-  count : Int?
+  fd : Int32
+  offset : Int32?
+  count : Int32?
 } derive(Eq)
 
 ///|
@@ -36,7 +36,7 @@ pub(all) struct ZeroCopySend {
 /// `early_hints` (each a `103` message's `Link` values). The captured,
 /// sans-transport analog of what a real client would observe.
 pub(all) struct TestResponse {
-  status : Int
+  status : Int32
   headers : Array[(String, String)]
   body : Bytes
   trailers : Array[(String, String)]
@@ -147,8 +147,8 @@ pub(all) struct TestClient {
   app : (@http.Request) -> Array[@spec.Event]
   root_path : String
   base_headers : Array[(String, String)]
-  client : (String, Int)?
-  server : (String, Int?)?
+  client : (String, Int32)?
+  server : (String, Int32?)?
   extensions : @spec.Extensions
 }
 
@@ -159,11 +159,11 @@ pub(all) struct TestClient {
 /// `("testserver", 80)` server, and no advertised extensions.
 pub fn TestClient::from_app(
   app : (@http.Request) -> Array[@spec.Event],
-  root_path? : String = "",
-  base_headers? : Array[(String, String)] = [],
-  client? : (String, Int)? = Some(("testclient", 50000)),
-  server? : (String, Int?)? = Some(("testserver", Some(80))),
-  extensions? : @spec.Extensions = @spec.Extensions::none(),
+  root_path~ : String = "",
+  base_headers~ : Array[(String, String)] = [],
+  client~ : (String, Int32)? = Some(("testclient", 50000)),
+  server~ : (String, Int32?)? = Some(("testserver", Some(80))),
+  extensions~ : @spec.Extensions = @spec.Extensions::none(),
 ) -> TestClient {
   { app, root_path, base_headers, client, server, extensions, }
 }
@@ -172,11 +172,11 @@ pub fn TestClient::from_app(
 /// Build a `TestClient` from a unary `@http.Handler`.
 pub fn TestClient::new(
   handler : @http.Handler,
-  root_path? : String = "",
-  base_headers? : Array[(String, String)] = [],
-  client? : (String, Int)? = Some(("testclient", 50000)),
-  server? : (String, Int?)? = Some(("testserver", Some(80))),
-  extensions? : @spec.Extensions = @spec.Extensions::none(),
+  root_path~ : String = "",
+  base_headers~ : Array[(String, String)] = [],
+  client~ : (String, Int32)? = Some(("testclient", 50000)),
+  server~ : (String, Int32?)? = Some(("testserver", Some(80))),
+  extensions~ : @spec.Extensions = @spec.Extensions::none(),
 ) -> TestClient {
   TestClient::from_app(
     fn(req) { handler(req).events() },
@@ -193,11 +193,11 @@ pub fn TestClient::new(
 /// optional trailers).
 pub fn TestClient::from_stream(
   handler : @http.StreamHandler,
-  root_path? : String = "",
-  base_headers? : Array[(String, String)] = [],
-  client? : (String, Int)? = Some(("testclient", 50000)),
-  server? : (String, Int?)? = Some(("testserver", Some(80))),
-  extensions? : @spec.Extensions = @spec.Extensions::none(),
+  root_path~ : String = "",
+  base_headers~ : Array[(String, String)] = [],
+  client~ : (String, Int32)? = Some(("testclient", 50000)),
+  server~ : (String, Int32?)? = Some(("testserver", Some(80))),
+  extensions~ : @spec.Extensions = @spec.Extensions::none(),
 ) -> TestClient {
   TestClient::from_app(
     fn(req) { handler(req).events() },
@@ -240,9 +240,9 @@ pub fn TestClient::request(
   self : TestClient,
   http_method~ : String,
   path~ : String,
-  headers? : Array[(String, String)] = [],
-  body? : Bytes = b"",
-  http_version? : String = "1.1",
+  headers~ : Array[(String, String)] = [],
+  body~ : Bytes = b"",
+  http_version~ : String = "1.1",
   chunks? : Array[Bytes],
 ) -> TestResponse {
   let (p, q) = @spec.split_target(path)
@@ -267,7 +267,7 @@ pub fn TestClient::request(
 pub fn TestClient::get(
   self : TestClient,
   path : String,
-  headers? : Array[(String, String)] = [],
+  headers~ : Array[(String, String)] = [],
 ) -> TestResponse {
   self.request(http_method="GET", path~, headers~)
 }
@@ -277,7 +277,7 @@ pub fn TestClient::get(
 pub fn TestClient::head(
   self : TestClient,
   path : String,
-  headers? : Array[(String, String)] = [],
+  headers~ : Array[(String, String)] = [],
 ) -> TestResponse {
   self.request(http_method="HEAD", path~, headers~)
 }
@@ -287,7 +287,7 @@ pub fn TestClient::head(
 pub fn TestClient::delete(
   self : TestClient,
   path : String,
-  headers? : Array[(String, String)] = [],
+  headers~ : Array[(String, String)] = [],
 ) -> TestResponse {
   self.request(http_method="DELETE", path~, headers~)
 }
@@ -297,8 +297,8 @@ pub fn TestClient::delete(
 pub fn TestClient::post(
   self : TestClient,
   path : String,
-  body? : Bytes = b"",
-  headers? : Array[(String, String)] = [],
+  body~ : Bytes = b"",
+  headers~ : Array[(String, String)] = [],
 ) -> TestResponse {
   self.request(http_method="POST", path~, headers~, body~)
 }
@@ -308,8 +308,8 @@ pub fn TestClient::post(
 pub fn TestClient::put(
   self : TestClient,
   path : String,
-  body? : Bytes = b"",
-  headers? : Array[(String, String)] = [],
+  body~ : Bytes = b"",
+  headers~ : Array[(String, String)] = [],
 ) -> TestResponse {
   self.request(http_method="PUT", path~, headers~, body~)
 }
@@ -319,8 +319,8 @@ pub fn TestClient::put(
 pub fn TestClient::patch(
   self : TestClient,
   path : String,
-  body? : Bytes = b"",
-  headers? : Array[(String, String)] = [],
+  body~ : Bytes = b"",
+  headers~ : Array[(String, String)] = [],
 ) -> TestResponse {
   self.request(http_method="PATCH", path~, headers~, body~)
 }
@@ -338,7 +338,7 @@ pub(all) struct WsTestSession {
   accept_headers : Array[(String, String)]
   messages : Array[@ws.WsMessage]
   closed : Bool
-  close_code : Int?
+  close_code : Int32?
   close_reason : String?
   denial : TestResponse?
 } derive(Eq)
@@ -382,7 +382,7 @@ fn reassemble_ws(events : Array[@spec.Event]) -> WsTestSession {
   let mut accept_headers : Array[(String, String)] = []
   let messages : Array[@ws.WsMessage] = []
   let mut closed = false
-  let mut close_code : Int? = None
+  let mut close_code : Int32? = None
   let mut close_reason : String? = None
   let mut had_denial = false
   let mut denial_status = 0
@@ -446,7 +446,7 @@ fn reassemble_ws(events : Array[@spec.Event]) -> WsTestSession {
 /// `disconnect` code is given.
 fn ws_inbound(
   messages : Array[@ws.WsMessage],
-  disconnect : Int?,
+  disconnect : Int32?,
 ) -> Array[@spec.Event] {
   let out : Array[@spec.Event] = [WebSocketConnect]
   for m in messages {
@@ -500,10 +500,10 @@ pub fn TestClient::websocket(
   self : TestClient,
   path~ : String,
   handler~ : @ws.WebSocketHandler,
-  send? : Array[@ws.WsMessage] = [],
-  headers? : Array[(String, String)] = [],
-  subprotocols? : Array[String] = [],
-  disconnect? : Int? = Some(1000),
+  send~ : Array[@ws.WsMessage] = [],
+  headers~ : Array[(String, String)] = [],
+  subprotocols~ : Array[String] = [],
+  disconnect~ : Int32? = Some(1000),
 ) -> WsTestSession {
   let scope = self.ws_scope(path, headers, subprotocols)
   reassemble_ws(
@@ -520,10 +520,10 @@ pub fn TestClient::websocket_app(
   self : TestClient,
   path~ : String,
   app~ : (@spec.WebSocketScope, Array[@spec.Event]) -> Array[@spec.Event],
-  send? : Array[@ws.WsMessage] = [],
-  headers? : Array[(String, String)] = [],
-  subprotocols? : Array[String] = [],
-  disconnect? : Int? = Some(1000),
+  send~ : Array[@ws.WsMessage] = [],
+  headers~ : Array[(String, String)] = [],
+  subprotocols~ : Array[String] = [],
+  disconnect~ : Int32? = Some(1000),
 ) -> WsTestSession {
   let scope = self.ws_scope(path, headers, subprotocols)
   reassemble_ws(

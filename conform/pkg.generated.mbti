@@ -22,8 +22,8 @@ pub fn validate_ws_response(Array[@spec.Event]) -> EventOrderError?
 
 // Types and methods
 pub(all) struct ConformanceReport {
-  total : Int
-  passed : Int
+  total : Int32
+  passed : Int32
   failures : Array[String]
 } derive(Eq)
 pub fn ConformanceReport::equal(Self, Self) -> Bool
