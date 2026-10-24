@@ -4,7 +4,7 @@
 pub(all) struct PushPromise {
   path : String
   headers : Array[(String, String)]
-} derive(Eq)
+} derive(Eq, Debug)
 
 ///|
 /// First push-request header matching `name`.
@@ -25,7 +25,7 @@ pub(all) struct ZeroCopySend {
   fd : Int32
   offset : Int32?
   count : Int32?
-} derive(Eq)
+} derive(Eq, Debug)
 
 ///|
 /// The materialised result of driving an application in-process: the response
@@ -45,7 +45,7 @@ pub(all) struct TestResponse {
   zerocopysend : ZeroCopySend?
   debug : Array[Json]
   early_hints : Array[Array[String]]
-} derive(Eq)
+} derive(Eq, Debug)
 
 ///|
 /// First response header matching `name` (ASGI lowercased-name convention).
@@ -213,7 +213,10 @@ pub fn TestClient::from_stream(
 /// Materialise a request body into inbound `HttpRequest` events. When `chunks`
 /// is given each element becomes its own event (`more_body: true` on all but the
 /// last), exercising a streamed request; otherwise `body` is a single event.
-fn body_events(body : Bytes, chunks : Array[Bytes]?) -> Array[@spec.Event] {
+pub fn request_events(
+  body : Bytes,
+  chunks? : Array[Bytes],
+) -> Array[@spec.Event] {
   match chunks {
     Some(cs) =>
       if cs.length() == 0 {
@@ -258,7 +261,7 @@ pub fn TestClient::request(
     extensions=self.extensions,
   )
   reassemble(
-    @http.run_http_app(self.app, Http(scope), body_events(body, chunks)),
+    @http.run_http_app(self.app, Http(scope), request_events(body, chunks?)),
   )
 }
 
@@ -341,7 +344,7 @@ pub(all) struct WsTestSession {
   close_code : Int32?
   close_reason : String?
   denial : TestResponse?
-} derive(Eq)
+} derive(Eq, Debug)
 
 ///|
 /// First accept-response header matching `name`.
@@ -535,10 +538,22 @@ pub fn TestClient::websocket_app(
 pub extend PushPromise with Eq::{not_equal, equal}
 
 ///|
+pub extend PushPromise with Debug::{to_repr}
+
+///|
 pub extend ZeroCopySend with Eq::{not_equal, equal}
+
+///|
+pub extend ZeroCopySend with Debug::{to_repr}
 
 ///|
 pub extend TestResponse with Eq::{not_equal, equal}
 
 ///|
+pub extend TestResponse with Debug::{to_repr}
+
+///|
 pub extend WsTestSession with Eq::{not_equal, equal}
+
+///|
+pub extend WsTestSession with Debug::{to_repr}

@@ -2,6 +2,7 @@
 package "moonbitstack/moonasgi/ws"
 
 import {
+  "moonbitlang/core/debug",
   "moonbitstack/moonasgi/spec",
 }
 
@@ -32,9 +33,10 @@ pub fn WsAccept::not_equal(Self, Self) -> Bool
 pub(all) enum WsMessage {
   Text(String)
   Binary(Bytes)
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn WsMessage::equal(Self, Self) -> Bool
 pub fn WsMessage::not_equal(Self, Self) -> Bool
+pub fn WsMessage::to_repr(Self) -> @debug.Repr
 
 pub(all) enum WsSend {
   SendText(String)

@@ -3,7 +3,7 @@
 // https://www.starlette.io/middleware/
 //
 // The code uses only the language's async function types; the tests drive the applications with
-// moonbitlang/async, which has an event loop on the native and wasm backends only.
+// moonbitlang/async, which has an event loop on the native, wasm and js backends.
 import {
   "moonbitstack/moonasgi/spec",
   "moonbitstack/moonzip/gzip",
@@ -22,5 +22,5 @@ import {
 warnings = "-29"
 
 options(
-  targets: { "mid_test.mbt": [ "native", "wasm" ] },
+  targets: { "mid_test.mbt": [ "native", "wasm", "js" ] },
 )

@@ -425,7 +425,7 @@ pub(all) enum Event {
   // application agree on their own — "users are free to invent their own message
   // types", e.g. `mychat.message` — so neither direction can be a closed set.
   Other(type_~ : String, payload~ : Json)
-} derive(Eq)
+} derive(Eq, Debug)
 
 ///|
 /// Pull the next inbound event. The async awaitable an application calls to read
@@ -464,6 +464,9 @@ pub extend TlsExtension with Eq::{not_equal, equal}
 
 ///|
 pub extend Event with Eq::{not_equal, equal}
+
+///|
+pub extend Event with Debug::{to_repr}
 
 ///|
 pub extend AsgiVersion with Eq::{not_equal, equal}

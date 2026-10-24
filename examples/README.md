@@ -23,10 +23,10 @@ moon run examples/00-hello
 | 11 | [`headers`](11-headers/) | The latin-1 header wire codec: every byte 0x00..0xFF round-trips losslessly across the seam boundary. | `latin1_decode`/`latin1_encode`, `headers_from_wire`/`headers_to_wire` |
 | 12 | [`conformance`](12-conformance/) | The self-verifying harness that drives every `Event`, `Scope` field, and ordering rule through the synchronous cores and reports pass/fail. | `run_conformance`, `ConformanceReport::ok` |
 | 13 | [`legacy`](13-legacy/) | ASGI 2.0's double-callable convention run synchronously with `run_legacy`, matching the single-callable path; the async lifts a server binds to are constructed at the seam. | `run_legacy`, `AsgiApplication`, `LegacyAsgiApp`, `double_to_single_callable`, `guarantee_single_callable`, `to_asgi`/`AsgiApp` |
-| 14 | [`stack`](14-stack/) | Middleware from `mid` around an async application: a host check, a CORS preflight answered in the middleware, gzip, and a layer of our own beside them. Runs on native and wasm. | `mid.stack`, `Layer`, `Wrap`, `Cors::new`, `TrustedHosts::new`, `gzip`, `server_errors` |
+| 14 | [`stack`](14-stack/) | Middleware from `mid` around an async application: a host check, a CORS preflight answered in the middleware, gzip, and a layer of our own beside them. Runs on native, wasm and js. | `mid.stack`, `Layer`, `Wrap`, `Cors::new`, `TrustedHosts::new`, `gzip`, `server_errors` |
+| 15 | [`testing`](15-testing/) | An async application tested in-process: lifespan state read back by a request, a WebSocket echo, one exchange stepped through event by event, and a failing route's error reaching the test. Runs on native, wasm and js. | `testing.Client::new`/`lifespan`/`get`/`websocket`, `Session::send_text`/`receive_text`, `communicate`, `Communicator::send`/`receive`, `Finished` |
 
 The `TestClient`, `run_http`, `ws_run`, and `run_lifespan` need no socket and run on
-every backend, so every example checks and runs under `moon check --target all`
-unchanged - the seam is transport-agnostic by construction. The one async surface
-(`AsgiApp`/`Receive`/`Send`) is demonstrated by construction; its synchronous core
-is what the examples exercise end to end.
+every backend, so examples 00 to 13 check and run under every target unchanged. Examples 14
+and 15 drive async applications, so they run where moonbitlang/async has an event loop:
+native, wasm and js.

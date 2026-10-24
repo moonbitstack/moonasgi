@@ -1,0 +1,24 @@
+// Drives a real `AsgiApp` in-process, as asgiref's `testing` and Starlette's `TestClient`.
+// https://github.com/django/asgiref/blob/main/asgiref/testing.py
+//
+// The only package whose own code needs an event loop, so the seam and the other packages stay
+// free of moonbitlang/async.
+import {
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/ws",
+  "moonbitstack/moonasgi/client",
+  "moonbitlang/async",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/async/cond_var",
+  "moonbitlang/core/deque",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+}
+
+import {
+  "moonbitstack/moonasgi/testing",
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/http",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+} for "test"

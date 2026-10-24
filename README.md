@@ -47,7 +47,7 @@ pub type Middleware = (Handler) -> Handler
 
 ## TestClient
 
-Drive any application in-process, with no socket, on every backend. The `TestClient` is built on the synchronous `run_http_app` core: it fabricates a scope, feeds the request body in, runs the app, and reassembles the outbound event stream into a captured response.
+Drive a handler in-process, with no socket, on every backend. The `TestClient` is built on the synchronous `run_http_app` core: it fabricates a scope, feeds the request body in, runs the app, and reassembles the outbound event stream into a captured response.
 
 ```moonbit
 let client = TestClient::new(handler)          // or ::from_stream / ::from_app
@@ -57,6 +57,42 @@ assert_eq(r.text(), "payload")
 ```
 
 It reassembles a streamed multi-chunk body, captures response trailers, server-push promises, early hints, and the path-send target, and can stream a chunked request body in via `request(..., chunks=[...])`.
+
+## Testing an async application
+
+`moonasgi/testing` runs a real `AsgiApp` in-process on moonbitlang/async, as asgiref's `testing` and Starlette's `TestClient` do, on the native, wasm and js backends. An error the application raises reaches the test, whether it comes before the answer or after it.
+
+```moonbit
+let client = @testing.Client::new(app)
+client.lifespan(() => {                         // startup, body, shutdown
+  let r = client.post("/items", body=b"{}")
+  assert_eq(r.status, 201)
+  client.websocket(path="/chat", subprotocols=["v1"], ws => {
+    ws.send_text("hi")
+    assert_eq(ws.receive_text(), "hi")
+  })                                            // closes with 1000, waits for the app
+})
+```
+
+`communicate` is the event-level form, asgiref's `ApplicationCommunicator`:
+
+```moonbit
+@testing.communicate(app, scope, c => {
+  c.send(HttpRequest(body=b"", more_body=false))
+  assert_true(c.receive() is HttpResponseStart(status=200, ..))
+  assert_true(c.receive_nothing())
+  c.wait()
+})
+```
+
+| asgiref / Starlette | Here | Default wait |
+|:--|:--|:--|
+| `ApplicationCommunicator(app, scope)` | `communicate(app, scope, body)`; the application is cancelled when `body` returns | — |
+| `send_input`, `receive_output`, `receive_nothing`, `wait` | `send`, `receive`, `receive_nothing`, `wait` | 1 s; 100 ms for `receive_nothing` |
+| `TestClient(app)`, `with client:` | `Client::new(app)`, `client.lifespan(body)` | 1 s per wait |
+| `client.websocket_connect(path)` | `client.websocket(path~, body)` with a `Session` | — |
+
+Two things asgiref does differently: it raises an application's error as soon as the application has failed, dropping what it sent before; here those events come out first. And once the application has returned, `receive` raises `Finished` at once instead of waiting out the timeout. Every way a wait can end has a name in `Refused`: `Timeout`, `Finished`, `Closed`, `Denied`, `Startup`, `Shutdown` and `Unexpected`.
 
 ## WebSocket
 
@@ -223,7 +259,7 @@ stays a stream; and `Cors` has no origin regex yet. Each record has a preset (`@
 |:--|:--|
 | `compatibility` | `guarantee_single_callable`, `double_to_single_callable`; the convention is a constructor (`AsgiApplication`), since MoonBit has no signature reflection |
 | `typing` | `spec`: every scope and message as a type |
-| `testing.ApplicationCommunicator` | `TestClient`, synchronous and in-process; an async communicator is to come |
+| `testing.ApplicationCommunicator` | `testing.communicate` and `Communicator`; `testing.Client` beside it as Starlette's `TestClient`, and the synchronous `TestClient` for handlers |
 | `sync`, `wsgi`, `server`, `local` | nothing to carry over: MoonBit has no threads to bridge, no WSGI, and the server is mooncat |
 | Extensions | push, pathsend, zero-copy send, trailers, early hints, debug, WebSocket denial, TLS |
 
@@ -241,12 +277,12 @@ The `greet: *` whitebox tests assemble a representative app across all three sha
 
 ## Design
 
-- **The seam has no dependencies.** `spec` and the root are pure types plus a small sugar layer; the transport lives in the `mooncat` adapter. Only `mid` brings one in, moonzip for gzip, which is why it is a package of its own.
+- **The seam has no dependencies.** `spec` and the root are pure types plus a small sugar layer; the transport lives in the `mooncat` adapter. Two packages bring one in, which is why each is a package of its own: `mid` uses moonzip for gzip, and `testing` uses moonbitlang/async for its event loop.
 - **Faithful, not approximate.** This is a complete transliteration of ASGI 3.0 into MoonBit idiom — the typed `Scope`/`Event` shape is the dialect, not a subset.
 
 ## Status
 
-The seam (`Scope`, `Event`, `Receive`, `Send`, `AsgiApp`, `Request`, `Response`), the full extension set, the synchronous cores (`run_http`, `run_http_scoped`, `run_lifespan`, `ws_run`), `TestClient` for HTTP and WebSocket, the conformance harness and its ordering table, HTTP/2 and HTTP/3 pseudo-header lowering, and the middleware in `mid`. Warning-clean on every backend; the middleware tests run where moonbitlang/async has an event loop, native and wasm.
+The seam (`Scope`, `Event`, `Receive`, `Send`, `AsgiApp`, `Request`, `Response`), the full extension set, the synchronous cores (`run_http`, `run_http_scoped`, `run_lifespan`, `ws_run`), `TestClient` for HTTP and WebSocket, the conformance harness and its ordering table, HTTP/2 and HTTP/3 pseudo-header lowering, the middleware in `mid`, and the async test driver in `testing`. Warning-clean on every backend; the tests that drive async applications run where moonbitlang/async has an event loop: native, wasm and js.
 
 ## License
 

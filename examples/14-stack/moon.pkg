@@ -10,7 +10,7 @@ warnings = "-29"
 
 options(
   targets: {
-    "main.mbt": [ "native", "wasm" ],
-    "elsewhere.mbt": [ "js", "wasm-gc" ],
+    "main.mbt": [ "native", "wasm", "js" ],
+    "elsewhere.mbt": [ "wasm-gc" ],
   },
 )

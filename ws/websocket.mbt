@@ -6,7 +6,7 @@
 pub(all) enum WsMessage {
   Text(String)
   Binary(Bytes)
-} derive(Eq)
+} derive(Eq, Debug)
 
 ///|
 /// The application's answer to a `WebSocketConnect`, mirroring the three replies
@@ -211,6 +211,9 @@ pub extend WsAccept with Eq::{not_equal, equal}
 
 ///|
 pub extend WsMessage with Eq::{not_equal, equal}
+
+///|
+pub extend WsMessage with Debug::{to_repr}
 
 ///|
 pub extend WsSend with Eq::{not_equal, equal}

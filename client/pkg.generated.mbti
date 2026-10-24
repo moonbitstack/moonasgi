@@ -2,6 +2,7 @@
 package "moonbitstack/moonasgi/client"
 
 import {
+  "moonbitlang/core/debug",
   "moonbitstack/moonasgi/http",
   "moonbitstack/moonasgi/spec",
   "moonbitstack/moonasgi/ws",
@@ -10,16 +11,19 @@ import {
 // Values
 pub fn reassemble(Array[@spec.Event]) -> TestResponse
 
+pub fn request_events(Bytes, chunks? : Array[Bytes]) -> Array[@spec.Event]
+
 // Errors
 
 // Types and methods
 pub(all) struct PushPromise {
   path : String
   headers : Array[(String, String)]
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn PushPromise::equal(Self, Self) -> Bool
 pub fn PushPromise::header(Self, String) -> String?
 pub fn PushPromise::not_equal(Self, Self) -> Bool
+pub fn PushPromise::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TestClient {
   app : (@http.Request) -> Array[@spec.Event]
@@ -52,12 +56,13 @@ pub(all) struct TestResponse {
   zerocopysend : ZeroCopySend?
   debug : Array[Json]
   early_hints : Array[Array[String]]
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn TestResponse::equal(Self, Self) -> Bool
 pub fn TestResponse::header(Self, String) -> String?
 pub fn TestResponse::json(Self) -> Json raise
 pub fn TestResponse::not_equal(Self, Self) -> Bool
 pub fn TestResponse::text(Self) -> String
+pub fn TestResponse::to_repr(Self) -> @debug.Repr
 pub fn TestResponse::trailer(Self, String) -> String?
 
 pub(all) struct WsTestSession {
@@ -69,19 +74,21 @@ pub(all) struct WsTestSession {
   close_code : Int32?
   close_reason : String?
   denial : TestResponse?
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn WsTestSession::equal(Self, Self) -> Bool
 pub fn WsTestSession::header(Self, String) -> String?
 pub fn WsTestSession::not_equal(Self, Self) -> Bool
 pub fn WsTestSession::texts(Self) -> Array[String]
+pub fn WsTestSession::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ZeroCopySend {
   fd : Int32
   offset : Int32?
   count : Int32?
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn ZeroCopySend::equal(Self, Self) -> Bool
 pub fn ZeroCopySend::not_equal(Self, Self) -> Bool
+pub fn ZeroCopySend::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

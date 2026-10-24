@@ -46,15 +46,21 @@ SECTIONS = [
      "that would lose duplicates."),
     ("legacy", "spec/legacy.mbt", "ASGI 2.0 applications",
      "The legacy double-callable convention a 3.0 server is encouraged to keep "
-     "running. MoonBit has no signature reflection, so there is no equivalent of "
-     "asgiref's guarantee_single_callable: the two conventions are distinct types "
-     "and the choice is an explicit constructor."),
+     "running. MoonBit has no signature reflection, so guarantee_single_callable "
+     "takes the convention as an explicit constructor, AsgiApplication, instead of "
+     "detecting it."),
     ("middleware", ("mid/layer.mbt", "mid/cors.mbt", "mid/gzip.mbt", "mid/hosts.mbt", "mid/errors.mbt"),
      "Middleware",
      "Application-level middleware any framework's ASGI app can be wrapped in, as "
      "Starlette's: CORS, gzip, trusted hosts, the HTTPS redirect and the 500 for a "
      "failure. Each is a record implementing Layer; a caller's own middleware "
      "implements it too and stacks with them."),
+    ("testing", ("testing/communicator.mbt", "testing/client.mbt", "testing/session.mbt"),
+     "Async test driver",
+     "A real AsgiApp run in-process on moonbitlang/async, as asgiref's testing and "
+     "Starlette's TestClient: communicate steps through events one at a time, Client "
+     "sends requests, opens WebSocket sessions and runs the lifespan around a test, and "
+     "an error the application raises reaches the test."),
 ]
 KIND = {"struct": "struct", "enum": "enum", "fn": "fn", "type": "type", "let": "let"}
 

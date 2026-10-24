@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbitstack/moonasgi/spec"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn double_to_single_callable((Scope) -> async (async () -> Event, async (Event) -> Unit) -> Unit) -> async (Scope, async () -> Event, async (Event) -> Unit) -> Unit
 
@@ -67,9 +71,10 @@ pub(all) enum Event {
   LifespanShutdownComplete
   LifespanShutdownFailed(message~ : String)
   Other(type_~ : String, payload~ : Json)
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn Event::equal(Self, Self) -> Bool
 pub fn Event::not_equal(Self, Self) -> Bool
+pub fn Event::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Extensions {
   tls : TlsExtension?

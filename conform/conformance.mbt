@@ -805,10 +805,9 @@ pub fn run_conformance() -> ConformanceReport {
     "legacy/matches-single",
     legacy_out == @http.run_http(legacy_handler, legacy_scope, legacy_inbound),
   )
-  // NOTE on what is *not* here: `to_asgi` and `guarantee_single_callable` produce
-  //    an async callable, and this package has no runtime to drive one — that is the
-  //    whole point of the seam. Their coverage lives in `mooncat`, which has the
-  //    runtime; here only the synchronous cores they lift can be checked.
+  // `to_asgi` and `guarantee_single_callable` produce an async callable, which needs an
+  //    event loop to drive; their tests are in `testing`. Here only the synchronous cores
+  //    they lift are checked.
 
   // P. middleware composition: the first registered is the outermost, so it sees
   //    the request first and the response last.
