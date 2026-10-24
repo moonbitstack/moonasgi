@@ -49,6 +49,12 @@ SECTIONS = [
      "running. MoonBit has no signature reflection, so there is no equivalent of "
      "asgiref's guarantee_single_callable: the two conventions are distinct types "
      "and the choice is an explicit constructor."),
+    ("middleware", ("mid/layer.mbt", "mid/cors.mbt", "mid/gzip.mbt", "mid/hosts.mbt", "mid/errors.mbt"),
+     "Middleware",
+     "Application-level middleware any framework's ASGI app can be wrapped in, as "
+     "Starlette's: CORS, gzip, trusted hosts, the HTTPS redirect and the 500 for a "
+     "failure. Each is a record implementing Layer; a caller's own middleware "
+     "implements it too and stacks with them."),
 ]
 KIND = {"struct": "struct", "enum": "enum", "fn": "fn", "type": "type", "let": "let"}
 

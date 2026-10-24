@@ -6,23 +6,20 @@
 
 [![Check and Test](https://github.com/moonbitstack/moonasgi/actions/workflows/ci.yml/badge.svg)](https://github.com/moonbitstack/moonasgi/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
-[![mooncakes](https://img.shields.io/badge/mooncakes-Lfan--ke%2Fmoonasgi-brightgreen)](https://mooncakes.io/docs/moonbitstack/moonasgi)
+[![mooncakes](https://img.shields.io/badge/mooncakes-moonbitstack%2Fmoonasgi-brightgreen)](https://mooncakes.io/docs/moonbitstack/moonasgi)
 
 </div>
 
-> Moved on mooncakes from `Lfan-ke/moonasgi` to `moonbitstack/moonasgi`.
-
-`moonasgi` is the backend-agnostic protocol seam every server and framework in the **moon\*** full-stack suite is built around. One typed contract — `Scope` / `Receive` / `Send` — isolates async-transport churn in a single server adapter, so the framework repos (`moonapi`, `moonorm`, `moonrpc`, `moongql`, `moonzero`) never depend on `moonbitlang/async` directly.
+`moonasgi` is the backend-agnostic protocol seam every server and framework in the **moon\*** full-stack suite is built around. One typed contract — `Scope` / `Receive` / `Send` — isolates async-transport churn in a single server adapter, so the frameworks that sit on it (`moonapi`, `moongql`, `moonzero`, `moonmcp`) never touch the transport.
 
 ```mermaid
 flowchart LR
   net["native async<br/>(sockets, TLS, HTTP/1.1, HTTP/2)"] --> cat["mooncat<br/>(ASGI server)"]
   cat -->|"Scope / Receive / Send"| asgi(["**moonasgi**<br/>SEAM"])
   asgi --> api["moonapi"]
-  asgi --> rpc["moonrpc"]
   asgi --> gql["moongql"]
   asgi --> zero["moonzero"]
-  api --> orm["moonorm"]
+  asgi --> mcp["moonmcp"]
 ```
 
 ## The contract
@@ -188,6 +185,48 @@ Every ASGI 3.0 spec feature, and the test that exercises it. `conformance` is `r
 
 Two spec features have no direct model here. The C-level file object in `http.response.zerocopysend` is carried as an `Int` fd, because this seam is socket-free by design and the actual `sendfile` is the server adapter's (`mooncat`) job. And `send()` cannot raise on a closed connection, which the www sub-spec has required since version 2.4: `Send` is declared `async (Event) -> Unit`, so a server has no in-band way to tell an application the client went away mid-response. A body drain reports it — `run_http_scoped_drain` hands the app a `Drain` saying whether the client disconnected — but the send path does not.
 
+## Middleware
+
+`moonasgi/mid` wraps any ASGI application, whatever framework made it, the way Starlette's
+middleware does. Each middleware is a record implementing `Layer`; a middleware of your own
+implements it too, or is a plain function wrapped in `Wrap`, and stacks with them on equal terms.
+
+```moonbit
+let app = @mid.stack(
+  [
+    @mid.ServerErrors::new(),                          // outermost
+    @mid.TrustedHosts::new(hosts=["example.com", "*.example.com"]),
+    @mid.Cors::new(origins=["https://app.example.com"], methods=["GET", "POST"]),
+    @mid.gzip,
+    @mid.Wrap(inner => my_timing(inner)),
+  ],
+  framework_app,
+)
+```
+
+| Middleware | As in Starlette | Defaults |
+|:--|:--|:--|
+| `Cors` | `CORSMiddleware`: preflights answered here (200, or 400 naming the refusal), the origin echoed with credentials or a cookie | no origin, `GET`, the safelisted headers, 600 s |
+| `Gzip` | `GZipMiddleware`: a single-message body of `minimum` octets or more, when gzip is accepted | 500 octets, level 9 |
+| `TrustedHosts` | `TrustedHostMiddleware`: other hosts get 400; a bare domain goes to its listed `www.` | any host, redirect on |
+| `HttpsRedirect` | `HTTPSRedirectMiddleware`: `http` to `https`, `ws` to `wss`, by 307 | — |
+| `ServerErrors` | `ServerErrorMiddleware`: a 500 if the answer has not started, then the error raised on | no detail; `debug` or a `handler` to say more |
+
+Two differences, both deliberate: a body sent in several messages is not compressed, so a stream
+stays a stream; and `Cors` has no origin regex yet. Each record has a preset (`@mid.cors`,
+`@mid.gzip`, ...) and a `::new`, and `{ ..@mid.gzip, level: 1 }` says the same as
+`Gzip::new(level=1)`.
+
+## Beside asgiref
+
+| asgiref | Here |
+|:--|:--|
+| `compatibility` | `guarantee_single_callable`, `double_to_single_callable`; the convention is a constructor (`AsgiApplication`), since MoonBit has no signature reflection |
+| `typing` | `spec`: every scope and message as a type |
+| `testing.ApplicationCommunicator` | `TestClient`, synchronous and in-process; an async communicator is to come |
+| `sync`, `wsgi`, `server`, `local` | nothing to carry over: MoonBit has no threads to bridge, no WSGI, and the server is mooncat |
+| Extensions | push, pathsend, zero-copy send, trailers, early hints, debug, WebSocket denial, TLS |
+
 ## Consumed by
 
 The seam is the only thing the server and the frameworks share. Each binds to a specific slice of it.
@@ -196,18 +235,18 @@ The seam is the only thing the server and the frameworks share. Each binds to a 
 
 **[moonapi](https://github.com/moonbitstack/moonapi)** — the web framework. Binds at the scope level through `run_http_scoped`, because it reads what the ergonomic `Request` drops: `HttpScope.root_path` (mounted sub-apps), `extensions` (gate a response push or path-send on what the server advertises), `client` (security), and `state` (the lifespan-seeded pool / config). It returns `Response` and `StreamingResponse`, serves its OpenAPI document as an ordinary response, and registers `LifespanHandler` startup / shutdown hooks that mooncat runs.
 
-**[moonzero](https://github.com/moonbitstack/moonzero)** — the service assembler. Stacks its middleware (request-id, CORS, logging, recovery) as `Middleware` values and folds them over a `Handler` with `compose`, outermost-first.
+**[moonzero](https://github.com/moonbitstack/moonzero)** — the service assembler. Wraps its services in middleware (request-id, CORS, logging, recovery) folded over the application, outermost first.
 
 The `greet: *` whitebox tests assemble a representative app across all three shapes and drive it through these exact seam points, so the seam is proven greet-ready before any consuming repo is wired up.
 
 ## Design
 
-- **Zero dependencies.** The seam is pure types plus a small sugar layer; the concrete `moonbitlang/async` transport types live only in the `mooncat` adapter. Async or backend churn stops at the seam (see the isolation contract).
+- **The seam has no dependencies.** `spec` and the root are pure types plus a small sugar layer; the transport lives in the `mooncat` adapter. Only `mid` brings one in, moonzip for gzip, which is why it is a package of its own.
 - **Faithful, not approximate.** This is a complete transliteration of ASGI 3.0 into MoonBit idiom — the typed `Scope`/`Event` shape is the dialect, not a subset.
 
 ## Status
 
-`v0` — the SEAM (`Scope`, `Event`, `Receive`/`Send`/`AsgiApp`, `Request`/`Response`, `Handler`/`Middleware`) plus the full ASGI-extension event set (push, pathsend, zero-copy send, trailers, early hints, debug, WebSocket denial, TLS), `StreamingResponse` response streaming, the synchronous `run_http`, `run_http_scoped`, `run_lifespan`, and `ws_run` cores, the `TestClient` in-process driver for both HTTP and WebSocket, the `run_conformance` round-trip harness (436 checks) with its `validate_events` ordering table, `HttpScope::from_h2_headers` HTTP/2·3 pseudo-header lowering, and typed `Extensions`/`tls`/`spec_version` (2.5) scope metadata — 51 tests, warning-clean across every backend. The async `Handler → AsgiApp` runtime adapter lands with `mooncat`, which owns the native async transport.
+The seam (`Scope`, `Event`, `Receive`, `Send`, `AsgiApp`, `Request`, `Response`), the full extension set, the synchronous cores (`run_http`, `run_http_scoped`, `run_lifespan`, `ws_run`), `TestClient` for HTTP and WebSocket, the conformance harness and its ordering table, HTTP/2 and HTTP/3 pseudo-header lowering, and the middleware in `mid`. Warning-clean on every backend; the middleware tests run where moonbitlang/async has an event loop, native and wasm.
 
 ## License
 
