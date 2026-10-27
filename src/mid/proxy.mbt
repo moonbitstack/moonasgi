@@ -1,6 +1,7 @@
 ///|
-/// The client and scheme a reverse proxy saw, put back in the scope (← uvicorn's
-/// `ProxyHeadersMiddleware`, and RFC 7239). Only a request from an address in
+/// The client and scheme a reverse proxy saw, put back in the scope, by
+/// `X-Forwarded-For` / `X-Forwarded-Proto` or by RFC 7239's `Forwarded`. Only a
+/// request from an address in
 /// `trusted` is rewritten, since anyone else could claim any address; `"*"`
 /// trusts every peer.
 ///
@@ -20,7 +21,7 @@ pub extend ProxyHeaders with Eq::{equal, not_equal}
 pub extend ProxyHeaders with Debug::{to_repr}
 
 ///|
-/// uvicorn's default: only a proxy on the same machine is believed.
+/// The default: only a proxy on the same machine is believed.
 pub let proxy_headers : ProxyHeaders = { trusted: ["127.0.0.1"], }
 
 ///|
