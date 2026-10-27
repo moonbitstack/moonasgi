@@ -249,7 +249,7 @@ def render_package(pkg, folder, blurb):
 def build_search(entries):
     """Headings of every page plus every API item, for the search dialog."""
     for page in sorted(DOCS.glob("*.html")):
-        if page.name == "api.html":
+        if page.name in ("api.html", "api.template.html"):
             continue
         text = page.read_text(encoding="utf-8")
         title = re.search(r"<title>([^<]*)</title>", text)
