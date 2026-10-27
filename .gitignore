@@ -1,8 +1,5 @@
 .*
 !.git*
 !.moonignore
-!.nojekyll
 _*
 target/
-
-examples/*/pkg.generated.mbti

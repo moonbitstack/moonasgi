@@ -1260,3 +1260,5 @@ tbody tr:hover { background: color-mix(in oklab, var(--note-1) 22%, transparent)
   .shell { display: block; }
   body::before { display: none; }
 }
+
+html, button, input, textarea, select { font-variant-ligatures: no-contextual; }

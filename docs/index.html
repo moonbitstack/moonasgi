@@ -84,7 +84,7 @@
 }
 
 pub type Receive = async () -&gt; Event          // pull the next event in
-pub type Send = async (Event) -&gt; Unit        // push the next event out
+pub type Send = async (Event) -&gt; Unit         // push the next event out
 pub type AsgiApp = async (Scope, Receive, Send) -&gt; Unit</code></pre>
       </div>
 
