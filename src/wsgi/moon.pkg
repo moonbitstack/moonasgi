@@ -1,0 +1,14 @@
+// Synchronous applications on an ASGI server: the environment, the response
+// starter and the adapter (PEP 3333).
+import {
+  "moonbitstack/moonasgi/spec",
+  "moonbitlang/core/string",
+}
+
+import {
+  "moonbitstack/moonasgi/wsgi",
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/testing",
+  "moonbitstack/moonasgi/dispatch",
+  "moonbitlang/async",
+} for "test"

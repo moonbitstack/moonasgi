@@ -1,0 +1,112 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonasgi/mid"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitstack/moonasgi/spec",
+}
+
+// Values
+pub let body_limit : BodyLimit
+
+pub let cors : Cors
+
+pub let gzip : Gzip
+
+pub let https_redirect : HttpsRedirect
+
+pub let proxy_headers : ProxyHeaders
+
+pub let server_errors : ServerErrors
+
+pub fn stack(Array[&Layer], async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+
+pub let trusted_hosts : TrustedHosts
+
+// Errors
+
+// Types and methods
+pub(all) struct BodyLimit {
+  limit : Int32
+} derive(Eq, @debug.Debug)
+pub fn BodyLimit::equal(Self, Self) -> Bool
+pub fn BodyLimit::new(limit? : Int32) -> Self
+pub fn BodyLimit::not_equal(Self, Self) -> Bool
+pub fn BodyLimit::to_repr(Self) -> @debug.Repr
+pub fn BodyLimit::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for BodyLimit
+
+pub(all) struct Cors {
+  origins : Array[String]
+  methods : Array[String]
+  headers : Array[String]
+  credentials : Bool
+  expose : Array[String]
+  max_age : Int32
+} derive(Eq, @debug.Debug)
+pub fn Cors::equal(Self, Self) -> Bool
+pub fn Cors::new(origins? : Array[String], methods? : Array[String], headers? : Array[String], credentials? : Bool, expose? : Array[String], max_age? : Int32) -> Self
+pub fn Cors::not_equal(Self, Self) -> Bool
+pub fn Cors::to_repr(Self) -> @debug.Repr
+pub fn Cors::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for Cors
+
+pub(all) struct Gzip {
+  minimum : Int32
+  level : Int32
+} derive(Eq, @debug.Debug)
+pub fn Gzip::equal(Self, Self) -> Bool
+pub fn Gzip::new(minimum? : Int32, level? : Int32) -> Self
+pub fn Gzip::not_equal(Self, Self) -> Bool
+pub fn Gzip::to_repr(Self) -> @debug.Repr
+pub fn Gzip::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for Gzip
+
+pub(all) struct HttpsRedirect {
+} derive(Eq, @debug.Debug)
+pub fn HttpsRedirect::equal(Self, Self) -> Bool
+pub fn HttpsRedirect::new() -> Self
+pub fn HttpsRedirect::not_equal(Self, Self) -> Bool
+pub fn HttpsRedirect::to_repr(Self) -> @debug.Repr
+pub fn HttpsRedirect::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for HttpsRedirect
+
+pub(all) struct ProxyHeaders {
+  trusted : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn ProxyHeaders::equal(Self, Self) -> Bool
+pub fn ProxyHeaders::new(trusted? : Array[String]) -> Self
+pub fn ProxyHeaders::not_equal(Self, Self) -> Bool
+pub fn ProxyHeaders::to_repr(Self) -> @debug.Repr
+pub fn ProxyHeaders::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for ProxyHeaders
+
+pub(all) struct ServerErrors {
+  debug : Bool
+  handler : ((Error) -> (Int32, Array[(String, String)], String))?
+}
+pub fn ServerErrors::new(debug? : Bool, handler? : (Error) -> (Int32, Array[(String, String)], String)) -> Self
+pub fn ServerErrors::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for ServerErrors
+
+pub(all) struct TrustedHosts {
+  hosts : Array[String]
+  www_redirect : Bool
+} derive(Eq, @debug.Debug)
+pub fn TrustedHosts::equal(Self, Self) -> Bool
+pub fn TrustedHosts::new(hosts? : Array[String], www_redirect? : Bool) -> Self
+pub fn TrustedHosts::not_equal(Self, Self) -> Bool
+pub fn TrustedHosts::to_repr(Self) -> @debug.Repr
+pub fn TrustedHosts::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for TrustedHosts
+
+pub(all) struct Wrap((async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit)
+pub fn Wrap::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for Wrap
+
+// Type aliases
+
+// Traits
+pub(open) trait Layer {
+  fn wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+}

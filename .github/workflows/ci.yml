@@ -45,10 +45,17 @@ jobs:
       - name: moon test (all backends)
         run: moon test --target all
 
+      - name: examples run
+        if: runner.os == 'Linux'
+        run: |
+          for dir in src/examples/*/; do
+            moon run "$dir" --target native > /dev/null
+          done
+
       - name: lint (fmt is clean)
         run: |
-          moon fmt && git diff --exit-code
+          moon fmt && git -c core.autocrlf=false diff --ignore-cr-at-eol --exit-code
 
       - name: interfaces are up to date
         run: |
-          moon info --target all && git diff --exit-code
+          moon info --target all && git -c core.autocrlf=false diff --ignore-cr-at-eol --exit-code

@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonasgi/wsgi"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitstack/moonasgi/spec",
+}
+
+// Values
+pub fn to_asgi((Environ, (String, Array[(String, String)]) -> (Bytes) -> Unit) -> Iter[Bytes] raise) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+
+// Errors
+
+// Types and methods
+pub(all) struct Environ {
+  request_method : String
+  script_name : String
+  path_info : String
+  query_string : String
+  content_type : String
+  content_length : String
+  server_name : String
+  server_port : String
+  server_protocol : String
+  remote_addr : String
+  remote_port : String
+  headers : Array[(String, String)]
+  url_scheme : String
+  input : Bytes
+} derive(Eq, @debug.Debug)
+pub fn Environ::equal(Self, Self) -> Bool
+pub fn Environ::header(Self, String) -> String?
+pub fn Environ::not_equal(Self, Self) -> Bool
+pub fn Environ::of(@spec.HttpScope, Bytes) -> Self
+pub fn Environ::to_map(Self) -> Map[String, String]
+pub fn Environ::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+pub type StartResponse = (String, Array[(String, String)]) -> (Bytes) -> Unit
+
+pub type WsgiApp = (Environ, (String, Array[(String, String)]) -> (Bytes) -> Unit) -> Iter[Bytes] raise
+
+// Traits

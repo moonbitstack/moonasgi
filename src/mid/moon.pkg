@@ -1,0 +1,27 @@
+// Middleware at the application level, framework-neutral: anything that produces an ASGI
+// application wraps it in these, as Starlette's middleware wraps any ASGI app.
+// https://www.starlette.io/middleware/
+//
+// The code uses only the language's async function types; the tests drive the applications with
+// moonbitlang/async, which has an event loop on the native, wasm and js backends.
+import {
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonzip/gzip",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/cmp",
+  "moonbitlang/core/string",
+}
+
+import {
+  "moonbitstack/moonasgi/mid",
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonzip/gzip",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+} for "test"
+
+warnings = "-29"
+
+options(
+  targets: { "mid_test.mbt": [ "native", "wasm", "js" ] },
+)

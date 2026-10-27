@@ -240,28 +240,58 @@ let app = @mid.stack(
 )
 ```
 
-| Middleware | As in Starlette | Defaults |
+| Middleware | What it does | Defaults |
 |:--|:--|:--|
-| `Cors` | `CORSMiddleware`: preflights answered here (200, or 400 naming the refusal), the origin echoed with credentials or a cookie | no origin, `GET`, the safelisted headers, 600 s |
-| `Gzip` | `GZipMiddleware`: a single-message body of `minimum` octets or more, when gzip is accepted | 500 octets, level 9 |
-| `TrustedHosts` | `TrustedHostMiddleware`: other hosts get 400; a bare domain goes to its listed `www.` | any host, redirect on |
-| `HttpsRedirect` | `HTTPSRedirectMiddleware`: `http` to `https`, `ws` to `wss`, by 307 | — |
-| `ServerErrors` | `ServerErrorMiddleware`: a 500 if the answer has not started, then the error raised on | no detail; `debug` or a `handler` to say more |
+| `Cors` | Preflights answered here (200, or 400 naming the refusal), the origin echoed with credentials or a cookie | no origin, `GET`, the safelisted headers, 600 s |
+| `Gzip` | Compresses a single-message body of `minimum` octets or more, when gzip is accepted | 500 octets, level 9 |
+| `TrustedHosts` | Other hosts get 400; a bare domain goes to its listed `www.` | any host, redirect on |
+| `HttpsRedirect` | `http` to `https`, `ws` to `wss`, by 307 | — |
+| `ServerErrors` | A 500 if the answer has not started, then the error raised on | no detail; `debug` or a `handler` to say more |
+| `ProxyHeaders` | From a trusted proxy, `X-Forwarded-For` and `X-Forwarded-Proto` (or RFC 7239 `Forwarded`) become the scope's client and scheme | trusts `127.0.0.1` |
+| `BodyLimit` | A request body over the limit is answered 413, by its `Content-Length` or as it streams in | 1 MiB |
 
 Two differences, both deliberate: a body sent in several messages is not compressed, so a stream
 stays a stream; and `Cors` has no origin regex yet. Each record has a preset (`@mid.cors`,
 `@mid.gzip`, ...) and a `::new`, and `{ ..@mid.gzip, level: 1 }` says the same as
 `Gzip::new(level=1)`.
 
-## Beside asgiref
+## Several applications behind one
 
-| asgiref | Here |
-|:--|:--|
-| `compatibility` | `guarantee_single_callable`, `double_to_single_callable`; the convention is a constructor (`AsgiApplication`), since MoonBit has no signature reflection |
-| `typing` | `spec`: every scope and message as a type |
-| `testing.ApplicationCommunicator` | `testing.communicate` and `Communicator`; `testing.Client` beside it as Starlette's `TestClient`, and the synchronous `TestClient` for handlers |
-| `sync`, `wsgi`, `server`, `local` | nothing to carry over: MoonBit has no threads to bridge, no WSGI, and the server is mooncat |
-| Extensions | push, pathsend, zero-copy send, trailers, early hints, debug, WebSocket denial, TLS |
+`moonasgi/dispatch` puts several ASGI applications behind one, so one server carries an API,
+an MCP endpoint and a site:
+
+<!-- nocheck -->
+```moonbit
+let app = @dispatch.mount(
+  [("/api", api_app), ("/mcp", mcp_app)],
+  fallback=site_app,
+)
+let by_host = @dispatch.hosts([("docs.example.com", docs_app)], fallback=app)
+```
+
+`mount` matches whole path segments and prefers the longest prefix; the application chosen sees
+the path below its prefix and the prefix added to `root_path`. `hosts` matches the `Host` header,
+`*.example.com` for every name below a domain. A path or host nothing takes gets 404, or a
+declined handshake for a WebSocket. The lifespan reaches every application: startup in order,
+shutdown in reverse, one failed startup failing them all; an application that does not take part
+in the lifespan is left out of it.
+
+## Synchronous applications
+
+`moonasgi/wsgi` runs a synchronous application, the WSGI shape, on an ASGI server:
+
+```moonbit
+let legacy : @wsgi.WsgiApp = (environ, start) => {
+  ignore(start("200 OK", [("Content-Type", "text/plain")]))
+  ["hello from ", environ.path_info].iter().map(s => @utf8.encode(s))
+}
+let app = @wsgi.to_asgi(legacy)
+```
+
+`Environ` carries the CGI variables as fields (`script_name` is the mount point, `path_info` the
+rest), the request headers and the body; `to_map` gives them under their CGI names. The request
+body is read before the application runs; each chunk it yields, or writes through what
+`start_response` returns, is sent as it comes. A WebSocket is declined and the lifespan answered.
 
 ## Consumed by
 
@@ -277,12 +307,13 @@ The `greet: *` whitebox tests assemble a representative app across all three sha
 
 ## Design
 
-- **The seam has no dependencies.** `spec` and the root are pure types plus a small sugar layer; the transport lives in the `mooncat` adapter. Two packages bring one in, which is why each is a package of its own: `mid` uses moonzip for gzip, and `testing` uses moonbitlang/async for its event loop.
+- **The seam has no dependencies.** `spec` and the root are pure types plus a small sugar layer; the transport lives in the `mooncat` adapter. Three packages bring one in, which is why each is a package of its own: `mid` uses moonzip for gzip, and `testing` and `dispatch` use moonbitlang/async for its event loop.
+- **A closed connection says so.** A server raises `spec.Closed` from `send` once the connection has closed, so an application that keeps sending learns it and stops.
 - **Faithful, not approximate.** This is a complete transliteration of ASGI 3.0 into MoonBit idiom — the typed `Scope`/`Event` shape is the dialect, not a subset.
 
 ## Status
 
-The seam (`Scope`, `Event`, `Receive`, `Send`, `AsgiApp`, `Request`, `Response`), the full extension set, the synchronous cores (`run_http`, `run_http_scoped`, `run_lifespan`, `ws_run`), `TestClient` for HTTP and WebSocket, the conformance harness and its ordering table, HTTP/2 and HTTP/3 pseudo-header lowering, the middleware in `mid`, and the async test driver in `testing`. Warning-clean on every backend; the tests that drive async applications run where moonbitlang/async has an event loop: native, wasm and js.
+The seam (`Scope`, `Event`, `Receive`, `Send`, `AsgiApp`, `Request`, `Response`), the full extension set, the synchronous cores (`run_http`, `run_http_scoped`, `run_lifespan`, `ws_run`), `TestClient` for HTTP and WebSocket, the conformance harness and its ordering table, HTTP/2 and HTTP/3 pseudo-header lowering, the middleware in `mid`, the async test driver in `testing`, several applications behind one in `dispatch`, and synchronous applications in `wsgi`. Warning-clean on every backend; the tests that drive async applications run where moonbitlang/async has an event loop: native, wasm and js.
 
 ## License
 

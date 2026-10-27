@@ -1,0 +1,17 @@
+// Several applications behind one: by path prefix or by host name, with one
+// lifespan for them all. The lifespan runs the applications side by side, so
+// this package needs an event loop, as `testing` does.
+import {
+  "moonbitstack/moonasgi/spec",
+  "moonbitlang/async",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitstack/moonasgi/dispatch",
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/testing",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+} for "test"

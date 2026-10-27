@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonasgi/dispatch"
+
+import {
+  "moonbitstack/moonasgi/spec",
+}
+
+// Values
+pub fn hosts(Array[(String, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit)], fallback? : async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+
+pub async fn lifespan(Array[async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit], @spec.LifespanScope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+
+pub fn mount(Array[(String, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit)], fallback? : async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

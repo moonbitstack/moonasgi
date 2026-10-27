@@ -1,16 +1,18 @@
 name = "moonbitstack/moonasgi"
 
-version = "0.10.2"
+version = "0.10.3"
 
 readme = "README.md"
+
+source = "src"
 
 repository = "https://github.com/moonbitstack/moonasgi"
 
 license = "Apache-2.0"
 
-keywords = [ "asgi", "moonbit", "web", "server-interface", "async", "http" ]
+keywords = [ "asgi", "web", "server" ]
 
-description = "MoonBit-dialect ASGI 3.0 — the load-bearing server↔app SEAM (Scope / Receive / Send) that the moon* full-stack web suite (mooncat, moonapi, moonrpc, moongql, moonzero) is built around."
+description = "The ASGI interface for MoonBit: servers, applications and the middleware between them."
 
 import {
   "moonbitstack/moonzip@0.3.0",

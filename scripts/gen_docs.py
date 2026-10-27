@@ -272,7 +272,7 @@ def main():
         body.append('<section class="pkg" id="%s"><h2><span class="at">§</span>%s</h2>'
                     '<p class="pdesc">%s</p>' % (sid, title, esc(desc)))
         files = rel if isinstance(rel, tuple) else (rel,)
-        for kind, sig, doc in [it for f in files for it in parse(ROOT / f)]:
+        for kind, sig, doc in [it for f in files for it in parse(ROOT / "src" / f)]:
             total += 1
             body.append('<div class="item" data-k="%s"><span class="kind">%s</span>'
                         '<pre class="sig">%s</pre>%s</div>'
