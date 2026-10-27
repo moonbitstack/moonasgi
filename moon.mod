@@ -12,7 +12,7 @@ license = "Apache-2.0"
 
 keywords = [ "asgi", "web", "server" ]
 
-description = "The ASGI interface for MoonBit: servers, applications and the middleware between them."
+description = "ASGI 3.0 for MoonBit: the interface between servers and frameworks."
 
 import {
   "moonbitstack/moonzip@0.3.0",
