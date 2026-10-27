@@ -1,10 +1,10 @@
 // Several applications behind one: by path prefix, as a mount, or by host name.
-// A server runs one application per listening socket; this is how a moonapi app,
-// an MCP server and a GraphQL endpoint share it.
+// A server runs one application per listening socket; this is how an API, an MCP
+// endpoint and a site share it.
 
 ///|
-/// One application per path prefix (← Starlette's `Mount`, a dispatcher that
-/// picks an application by the start of the path). A prefix matches whole
+/// One application per path prefix: an application is picked by the start of the
+/// path. A prefix matches whole
 /// segments, so `/api` takes `/api` and `/api/users` but not `/apis`; when two
 /// prefixes match, the longer wins, whatever the order they were given in. `""`
 /// or `"/"` matches every path.
@@ -58,7 +58,7 @@ pub fn mount(
 }
 
 ///|
-/// One application per host name (← Starlette's `Host`). A name matches the
+/// One application per host name. A name matches the
 /// request's `Host` header without its port and without regard to case;
 /// `*.example.com` matches every name below `example.com`, not `example.com`
 /// itself. The first route that matches is taken. A host no route takes goes

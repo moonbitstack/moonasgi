@@ -18,7 +18,7 @@
 /// handler is dropped down onto the raw seam: a typed `Scope::Http` and the
 /// `Event` stream `run_http` lowers the response to, the shape a real server
 /// serialises. The final line lifts the handler onto the async `AsgiApp`
-/// (`Receive`/`Send`) that the mooncat server binds.
+/// (`Receive`/`Send`) that a server binds.
 ///
 ///     moon run src/examples/00-hello
 #coverage.skip

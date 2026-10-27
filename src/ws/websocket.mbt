@@ -42,7 +42,7 @@ pub(all) enum WsSend {
 /// 2.5). Driven in-process by `ws_run` and the
 /// `TestClient`, so accept/subprotocol/echo/close logic is testable on every
 /// backend without an async socket — the faithful synchronous core the async
-/// server (`mooncat`) lifts onto `AsgiApp`.
+/// server lifts onto `AsgiApp`.
 pub(all) struct WebSocketHandler {
   on_connect : (@spec.WebSocketScope) -> WsAccept
   on_receive : (WsMessage) -> Array[WsSend]

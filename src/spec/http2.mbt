@@ -6,8 +6,8 @@
 /// `scope["headers"]`. A conforming server must consume the pseudo-headers into
 /// the scope's typed fields and hand the application only the ordinary headers,
 /// with `host` synthesised from `:authority`. `moonasgi` owns that lowering so
-/// every h2/h2c/h3 transport in the suite (mooncat) produces the same scope from
-/// the same frame, and an app never sees a `:`-prefixed header.
+/// every h2/h2c/h3 transport produces the same scope from the same frame, and an
+/// app never sees a `:`-prefixed header.
 ///
 /// A malformed pseudo-header set — a missing required one, a duplicate, an
 /// unknown `:foo`, or a pseudo-header after an ordinary field — is rejected with

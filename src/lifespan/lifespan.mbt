@@ -17,8 +17,7 @@ pub(all) enum LifespanReply {
 /// config) and returns `Complete` or `Failed`. `on_shutdown` runs once at
 /// teardown to release those resources. Driven in-process by `run_lifespan`, so
 /// boot/teardown logic is testable on every backend without an async runtime —
-/// the faithful synchronous core the async server (`mooncat`) lifts onto the
-/// lifespan protocol.
+/// the synchronous core a server lifts onto the lifespan protocol.
 pub(all) struct LifespanHandler {
   on_startup : (@spec.LifespanScope) -> LifespanReply
   on_shutdown : (@spec.LifespanScope) -> LifespanReply

@@ -2,318 +2,262 @@
 
 # moonasgi
 
-**MoonBit-dialect [ASGI 3.0](https://asgi.readthedocs.io/) — the load-bearing server↔app SEAM.**
+**The ASGI 3.0 seam for MoonBit.**<br>
+A scope goes in, an event stream comes out, and the transport stays out of your code.
 
-[![Check and Test](https://github.com/moonbitstack/moonasgi/actions/workflows/ci.yml/badge.svg)](https://github.com/moonbitstack/moonasgi/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
-[![mooncakes](https://img.shields.io/badge/mooncakes-moonbitstack%2Fmoonasgi-brightgreen)](https://mooncakes.io/docs/moonbitstack/moonasgi)
+<a href="https://moonbitstack.github.io/moonasgi/"><kbd> &nbsp;Documentation&nbsp; </kbd></a>
+&nbsp;
+<a href="https://moonbitstack.github.io/moonasgi/guide.html"><kbd> &nbsp;Guide&nbsp; </kbd></a>
+&nbsp;
+<a href="https://moonbitstack.github.io/moonasgi/api.html"><kbd> &nbsp;API reference&nbsp; </kbd></a>
+&nbsp;
+<a href="https://mooncakes.io/docs/moonbitstack/moonasgi"><kbd> &nbsp;mooncakes&nbsp; </kbd></a>
 
 </div>
 
-`moonasgi` is the backend-agnostic protocol seam every server and framework in the **moon\*** full-stack suite is built around. One typed contract — `Scope` / `Receive` / `Send` — isolates async-transport churn in a single server adapter, so the frameworks that sit on it (`moonapi`, `moongql`, `moonzero`, `moonmcp`) never touch the transport.
+---
 
-```mermaid
-flowchart LR
-  net["native async<br/>(sockets, TLS, HTTP/1.1, HTTP/2)"] --> cat["mooncat<br/>(ASGI server)"]
-  cat -->|"Scope / Receive / Send"| asgi(["**moonasgi**<br/>SEAM"])
-  asgi --> api["moonapi"]
-  asgi --> gql["moongql"]
-  asgi --> zero["moonzero"]
-  asgi --> mcp["moonmcp"]
+A server receives bytes and produces events. An application reads events and produces more. `moonasgi` is the agreement between them: three scopes, one event set, and the callables that carry them.
+
+Nothing here owns a socket. That means the same application runs behind a real server, inside a test, and on every backend a MoonBit program compiles to.
+
+## Install
+
+```
+moon add moonbitstack/moonasgi
 ```
 
-## The contract
+## A first handler
 
 ```moonbit
-pub enum Scope {
-  Http(HttpScope)
-  WebSocket(WebSocketScope)
-  Lifespan(LifespanScope)
+let greet : @moonasgi.Handler = fn(_request) {
+  @moonasgi.Response::text("hello")
 }
 
-pub type Receive = async () -> Event          // pull the next inbound event
-pub type Send    = async (Event) -> Unit      // push an outbound event
-pub type AsgiApp = async (Scope, Receive, Send) -> Unit
+let client = @moonasgi.TestClient::new(greet)
+let response = client.get("/")
+println("\{response.status} \{response.text()}")
 ```
 
-Applications are usually written against the ergonomic sugar, which the server lifts onto `AsgiApp`:
+```
+200 hello
+```
+
+`TestClient` runs the handler in-process: it builds a scope, feeds the request in, and reassembles what comes out. No socket, no async runtime, no server.
+
+## The interface
+
+| Name | What it is |
+|:--|:--|
+| `Scope` | `Http` · `WebSocket` · `Lifespan` — the connection, as typed data |
+| `Event` | Every message in both directions, one variant each, extensions included |
+| `Receive` | `async () -> Event` — pull the next event in |
+| `Send` | `async (Event) -> Unit` — push the next event out |
+| `AsgiApp` | `async (Scope, Receive, Send) -> Unit` — an application |
+| `Handler` | `(Request) -> Response` — the short form a server lifts onto `AsgiApp` |
+| `Middleware` | `(Handler) -> Handler` — one handler wrapped around another |
+
+The scopes and the event set are the specification itself: `HttpScope` carries the method, path, raw query, headers as byte pairs, the peers, `root_path`, `state` and `extensions`; `WebSocketScope` adds the subprotocols on offer; `LifespanScope` carries the state a startup seeds.
+
+## Running without a server
+
+Five cores drive an application synchronously, so a whole request can happen inside a test:
+
+| Core | Drives |
+|:--|:--|
+| `run_http` | a `Handler` over a scope and an inbound event list |
+| `run_http_scoped` | a scope-level application, with the full `HttpScope` |
+| `run_http_stream` | a `StreamingResponse`, lowered to the wire order |
+| `ws_run` | a WebSocket connection, connect to close |
+| `run_lifespan` | startup and shutdown, in the order a server runs them |
 
 ```moonbit
-pub type Handler    = (Request) -> Response
-pub type Middleware = (Handler) -> Handler
+let answer = @moonasgi.run_http(greet, scope, inbound)   // Array[Event]
 ```
 
-`Event` is a typed sum over the full http / websocket / lifespan message sets in both directions — including the standard extension messages — replacing ASGI's stringly-typed message dicts.
-
-## TestClient
-
-Drive a handler in-process, with no socket, on every backend. The `TestClient` is built on the synchronous `run_http_app` core: it fabricates a scope, feeds the request body in, runs the app, and reassembles the outbound event stream into a captured response.
+## Responses
 
 ```moonbit
-let client = TestClient::new(handler)          // or ::from_stream / ::from_app
-let r = client.post("/echo", body=b"payload")
-assert_eq(r.status, 200)
-assert_eq(r.text(), "payload")
+@moonasgi.Response::text("hello")                      // 200, text/plain
+@moonasgi.Response::json(status=201, { "id": 233 })     // any status
+@moonasgi.Response::new(204, [("x-trace", "1")], b"")   // headers and raw bytes
 ```
 
-It reassembles a streamed multi-chunk body, captures response trailers, server-push promises, early hints, and the path-send target, and can stream a chunked request body in via `request(..., chunks=[...])`.
-
-## Testing an async application
-
-`moonasgi/testing` runs a real `AsgiApp` in-process on moonbitlang/async, as asgiref's `testing` and Starlette's `TestClient` do, on the native, wasm and js backends. An error the application raises reaches the test, whether it comes before the answer or after it.
+A body that arrives in pieces, hints before the headers, or trailers at the end is a `StreamingResponse`:
 
 ```moonbit
-let client = @testing.Client::new(app)
-client.lifespan(() => {                         // startup, body, shutdown
-  let r = client.post("/items", body=b"{}")
-  assert_eq(r.status, 201)
-  client.websocket(path="/chat", subprotocols=["v1"], ws => {
-    ws.send_text("hi")
-    assert_eq(ws.receive_text(), "hi")
-  })                                            // closes with 1000, waits for the app
-})
+@moonasgi.StreamingResponse::new(
+  status=200,
+  headers=[("content-type", "text/event-stream")],
+  chunks=[b"data: 233\n\n", b"data: done\n\n"],
+  trailers=[("x-digest", "9f2c")],
+  early_hints=[["</style.css>; rel=preload"]],
+)
 ```
 
-`communicate` is the event-level form, asgiref's `ApplicationCommunicator`:
-
-```moonbit
-@testing.communicate(app, scope, c => {
-  c.send(HttpRequest(body=b"", more_body=false))
-  assert_true(c.receive() is HttpResponseStart(status=200, ..))
-  assert_true(c.receive_nothing())
-  c.wait()
-})
-```
-
-| asgiref / Starlette | Here | Default wait |
-|:--|:--|:--|
-| `ApplicationCommunicator(app, scope)` | `communicate(app, scope, body)`; the application is cancelled when `body` returns | — |
-| `send_input`, `receive_output`, `receive_nothing`, `wait` | `send`, `receive`, `receive_nothing`, `wait` | 1 s; 100 ms for `receive_nothing` |
-| `TestClient(app)`, `with client:` | `Client::new(app)`, `client.lifespan(body)` | 1 s per wait |
-| `client.websocket_connect(path)` | `client.websocket(path~, body)` with a `Session` | — |
-
-Two things asgiref does differently: it raises an application's error as soon as the application has failed, dropping what it sent before; here those events come out first. And once the application has returned, `receive` raises `Finished` at once instead of waiting out the timeout. Every way a wait can end has a name in `Refused`: `Timeout`, `Finished`, `Closed`, `Denied`, `Startup`, `Shutdown` and `Unexpected`.
+`events()` lowers it to the exact sequence a server writes: `103`, then the start, then each chunk, then the trailers.
 
 ## WebSocket
 
-WebSocket app logic is testable in-process too, through the synchronous core `ws_run` — the WebSocket analog of `run_http`. A `WebSocketHandler` is written in the connect / receive / disconnect shape; the `TestClient` drives a whole connection and captures the result as a `WsTestSession`.
-
 ```moonbit
-let client = TestClient::new(handler)
-let session = client.websocket(
-  path="/chat",
-  handler=WebSocketHandler::echo(subprotocol="chat"),
-  send=[Text("hello"), Binary(b"\x01\x02")],
+let handler = @moonasgi.WebSocketHandler::new(
+  on_receive=fn(message) {
+    match message {
+      Text(text) => [SendText("echo:" + text)]
+      Binary(bytes) => [SendBinary(bytes)]
+    }
+  },
 )
-assert_eq(session.accepted, true)
-assert_eq(session.subprotocol, Some("chat"))
-assert_eq(session.texts(), ["hello"])
 ```
 
-A handler can `Accept` (negotiating a subprotocol and response headers), `Reject` with a bare close code, or `DenyHttp` with a full HTTP response (the `websocket.http.response` extension). `ws_run_app` is the escape hatch for apps whose control flow is not the connect/receive/disconnect fold — it hands the whole inbound stream and full scope to the app.
+Connect can answer `Accept` (with a subprotocol and headers), `Reject` (a close code), or `DenyHttp` (a whole HTTP response). `ws_run` drives a connection; `TestClient::websocket` captures it as a `WsTestSession`.
 
 ## Lifespan
 
-The lifespan protocol has the same shape as the http and WebSocket cores. A `LifespanHandler` is written as a startup and a shutdown hook; `run_lifespan` drives it over the inbound `LifespanStartup` / `LifespanShutdown` events and returns the replies a server sends. Startup seeds `scope.state` in place — the map a server then copies onto every request scope, which is how a DB pool or loaded config reaches each request. A failed startup short-circuits: the server never proceeds to shutdown, exactly as ASGI pins.
-
 ```moonbit
-let app = LifespanHandler::new(
+let lifecycle = @moonasgi.LifespanHandler::new(
   on_startup=fn(scope) {
-    scope.state["db_pool"] = Json::string("pool://greet")   // seeded in place
+    scope.state["db_pool"] = Json::string("pool://main")
     Complete
   },
+  on_shutdown=fn(_scope) { Complete },
 )
-let out = run_lifespan(app, Lifespan(scope), [LifespanStartup])
-assert_eq(out == [LifespanStartupComplete], true)
 ```
 
-## Scope-aware core
-
-The ergonomic `Handler` sees a `Request` — method, path, query, headers, body. A framework needs more: `root_path` for mounted sub-apps, `extensions` to gate a feature on what the server advertises, `client` for security, and `state` seeded by lifespan. `run_http_scoped` hands the app the full `HttpScope` alongside the drained body, and `run_http_app` is the `Request`-level wrapper over it.
-
-```moonbit
-run_http_scoped(fn(scope, body) {
-  let prefix = scope.state.get("greeting_prefix")  // lifespan-seeded
-  [HttpResponseStart(status=200, headers=[], trailers=false),
-   HttpResponseBody(body, more_body=false)]
-}, Http(scope), inbound)
-```
-
-## HTTP/2 and HTTP/3
-
-`http_version` on the scope is `"1.0"`, `"1.1"`, `"2"`, or `"3"` — the SEAM is transport-agnostic, so an app runs unchanged whichever version served the request. The one place the version leaks into wiring is the request line: an HTTP/2 (RFC 7540 §8.1.2.3) or HTTP/3 request carries it as pseudo-headers (`:method`, `:scheme`, `:authority`, `:path`) interleaved with the ordinary fields, and ASGI has no slot for them in `scope["headers"]`. `HttpScope::from_h2_headers` owns that lowering so every h2/h2c/h3 transport in the suite (mooncat) produces the same scope from the same HEADERS block — pseudo-headers consumed into the typed fields, `host` synthesised from `:authority`, and no `:`-prefixed header ever reaching the app.
-
-```moonbit
-let scope = HttpScope::from_h2_headers([
-  (":method", "POST"), (":scheme", "https"),
-  (":authority", "example.test"), (":path", "/items?page=2"),
-  ("content-type", "application/json"),
-])
-// -> Ok: http_method="POST", scheme="https", path="/items",
-//        query_string=b"page=2", headers=[("host","example.test"), ...]
-```
-
-A malformed pseudo-header set — a missing required one, a duplicate, an unknown `:foo`, or a pseudo-header after an ordinary field — returns `Err(Http2HeaderError)` naming the first violation, so the transport can answer `RST_STREAM(PROTOCOL_ERROR)` instead of forwarding a bad scope.
-
-## Conformance
-
-`run_conformance()` is a table-driven harness. Every `Event` variant is checked for round-trip fidelity and for being distinct from every other one; the http, websocket and lifespan scopes and their ordering rules are driven through `run_http` / `ws_run` / `TestClient`. The out-of-band extension messages — push, pathsend, zero-copy send, debug, disconnect — are covered by the ordering tables rather than by a driver, since no driver emits them. It returns a `ConformanceReport` naming any failing check, so a downstream server can self-verify the seam wiring:
-
-```moonbit
-let report = run_conformance()
-assert_eq(report.ok(), true)
-```
-
-The harness also runs a **negative table**: ASGI pins the order an app may emit messages in, and `validate_events(scope, events)` walks an outbound stream and names the first violation — a body before the response starts, a second `http.response.start`, a websocket frame before the handshake is accepted, a lifespan shutdown reply before startup, and the rest. A server can run it over its own emissions to reject a buggy app early.
-
-```moonbit
-let bad = [HttpResponseBody(body=b"x", more_body=false)]  // no start
-assert_eq(validate_events(scope, bad) == Some(BodyBeforeStart), true)
-```
-
-## Extensions & streaming
-
-The standard ASGI extensions are modelled as typed events and scope fields, not stringly-typed dicts:
-
-- **`http.response.trailers`** — `StreamingResponse.trailers`; lowered to `HttpResponseStart{trailers: true}` + a terminating `HttpResponseTrailers`.
-- **`http.response.push`** — `HttpResponsePush{path, headers}`.
-- **`http.response.pathsend`** — `HttpResponsePathSend{path}`.
-- **`http.response.zerocopysend`** — `HttpResponseZeroCopySend{fd, offset, count, more_body}`; captured by the `TestClient` as `TestResponse.zerocopysend`.
-- **`http.response.early_hint`** — `HttpResponseEarlyHint{links}`; `StreamingResponse.early_hints`, lowered to `103 Early Hints` messages ahead of the response.
-- **`http.response.debug`** — `HttpResponseDebug{info}`; an out-of-band info payload with no protocol meaning, valid anywhere in the response.
-- **`websocket.http.response`** — `WebSocketHttpResponseStart` / `WebSocketHttpResponseBody`, to deny a handshake with a full HTTP response.
-- **`tls`** — `TlsExtension` carried on the scope's `extensions`.
-
-A server advertises what it honours via the typed `Extensions` capability flags; response streaming (multiple `HttpResponseBody` with `more_body: true`) is modelled by `StreamingResponse` and driven by `run_http_stream`. `spec_version` is negotiated numerically with `AsgiVersion::at_least`, and each sub-protocol carries its own default — `AsgiVersion::http()` / `websocket()` (`2.5`, the 2024-06-05 revision) and `lifespan()` (`2.0`). The `2.5` websocket revision adds `reason` to `WebSocketDisconnect`, threaded to a handler's `on_disconnect(code, reason)`.
-
-## Compliance matrix
-
-Every ASGI 3.0 spec feature, and the test that exercises it. `conformance` is `run_conformance()`'s in-suite battery; `test` names are the whitebox tests.
-
-| Spec feature | Modelled as | Covered by |
-|---|---|---|
-| `http` scope (all fields incl. `state`, `raw_path`, `root_path`) | `HttpScope` | `conformance` scope/http-fields |
-| `websocket` scope (incl. `subprotocols`, `state`) | `WebSocketScope` | `conformance` scope/ws-fields |
-| `lifespan` scope (incl. `state`) | `LifespanScope` | `conformance` scope/lifespan-fields |
-| `asgi` version / `spec_version` (2.5 http+ws, 2.0 lifespan) | `AsgiVersion` | `conformance` spec_version/*; test "per-subprotocol asgi spec_version defaults" |
-| `spec_version` numeric negotiation | `AsgiVersion::at_least` | test "AsgiVersion negotiates spec_version numerically" |
-| Every http/ws/lifespan message, both directions | `Event` (25 variants) | `conformance` event/*; test "SEAM scope and event variants construct" |
-| Full scope reaches a framework (`state`, `root_path`, `extensions`) | `run_http_scoped` | `conformance` scoped/*; test "greet: moonapi http routing round-trips…" |
-| `lifespan.startup` / `.shutdown` (complete / failed, in-place `state`) | `LifespanHandler` / `run_lifespan` | `conformance` lifespan/*; test "greet: lifespan startup seeds state…" |
-| `http.request` drain (streamed `more_body`) | `run_http` / `TestClient` | test "TestClient streams a chunked request body into the handler" |
-| `http.disconnect` | `HttpDisconnect` | `conformance` event/* |
-| `http.response.start` + `.body` round-trip | `Response` / `run_http` | `conformance` http/roundtrip; test "run_http drains a chunked body…" |
-| Response streaming (`more_body: true` chunks) | `StreamingResponse` / `run_http_stream` | test "TestClient reassembles a streaming multi-chunk response body" |
-| `websocket.connect` / `.accept` / `.receive` / `.send` / `.close` | `WebSocketHandler` / `ws_run` | test "ws_run echoes text and binary frames…" |
-| `websocket.disconnect` (2.5 `reason`) | `WebSocketDisconnect` | test "on_disconnect receives the 2.5 close code and reason" |
-| Handshake reject (bare close) | `WsAccept::Reject` | test "ws handler can reject the handshake with a close code" |
-| **ext** `http.response.trailers` | `StreamingResponse.trailers` | test "TestClient captures response trailers" |
-| **ext** `http.response.push` | `HttpResponsePush` | test "TestClient captures server push and pathsend" |
-| **ext** `http.response.pathsend` | `HttpResponsePathSend` | test "TestClient captures server push and pathsend" |
-| **ext** `http.response.zerocopysend` | `HttpResponseZeroCopySend` | test "zerocopysend and debug extensions round-trip…" |
-| **ext** `http.response.early_hint` | `HttpResponseEarlyHint` | test "early-hint extension round-trips through the TestClient" |
-| **ext** `http.response.debug` | `HttpResponseDebug` | test "zerocopysend and debug extensions round-trip…" |
-| **ext** `websocket.http.response` (denial) | `WsAccept::DenyHttp` | test "ws handler can deny the handshake with a full HTTP response" |
-| **ext** `tls` | `TlsExtension` | test "Extensions builder advertises capabilities and TLS data" |
-| Message-ordering rules (all message sets) | `validate_events` | `conformance` order/*; test "validator names the violation…" |
-| HTTP/2·3 pseudo-header → scope lowering (`:method`/`:scheme`/`:authority`/`:path`, host synthesis, malformed rejection) | `HttpScope::from_h2_headers` / `Http2HeaderError` | `conformance` h2/* |
-| `http_version` transport-agnostic seam (`"1.1"` / `"2"` / `"3"`) | `HttpScope.http_version` | `conformance` h2/seam-agnostic |
-
-Two spec features have no direct model here. The C-level file object in `http.response.zerocopysend` is carried as an `Int` fd, because this seam is socket-free by design and the actual `sendfile` is the server adapter's (`mooncat`) job. And `send()` cannot raise on a closed connection, which the www sub-spec has required since version 2.4: `Send` is declared `async (Event) -> Unit`, so a server has no in-band way to tell an application the client went away mid-response. A body drain reports it — `run_http_scoped_drain` hands the app a `Drain` saying whether the client disconnected — but the send path does not.
+Startup seeds `scope.state` in place. A server copies that map onto every request scope, so a pool or a loaded config reaches a handler without a global. A failed startup ends the boot.
 
 ## Middleware
 
-`moonasgi/mid` wraps any ASGI application, whatever framework made it, the way Starlette's
-middleware does. Each middleware is a record implementing `Layer`; a middleware of your own
-implements it too, or is a plain function wrapped in `Wrap`, and stacks with them on equal terms.
+`mid` wraps any application, whatever built it. Seven ship with the package:
+
+| Middleware | What it does | Default |
+|:--|:--|:--|
+| `cors` | Answers preflights, echoes the origin, exposes headers | no origin, `GET` |
+| `gzip` | Compresses a single-message body that is large enough | 500 octets, level 9 |
+| `trusted_hosts` | Refuses other `Host` values, redirects to `www.` | any host, redirect on |
+| `https_redirect` | `http` to `https`, `ws` to `wss`, by 307 | — |
+| `proxy_headers` | Restores the client and scheme from a trusted proxy | trusts `127.0.0.1` |
+| `body_limit` | Answers 413 over the limit, by length or as it streams | 1 MiB |
+| `server_errors` | A 500 when the answer has not started, then the error on | no detail |
 
 ```moonbit
-let app = @mid.stack(
+let app : @moonasgi.AsgiApp = async fn(_, receive, send) {
+  ignore(receive())
+  send(HttpResponseStart(status=200, headers=[], trailers=false))
+  send(HttpResponseBody(body=b"ok", more_body=false))
+}
+
+let stacked = @mid.stack(
   [
-    @mid.ServerErrors::new(),                          // outermost
-    @mid.TrustedHosts::new(hosts=["example.com", "*.example.com"]),
-    @mid.Cors::new(origins=["https://app.example.com"], methods=["GET", "POST"]),
+    @mid.server_errors,
+    @mid.TrustedHosts::new(hosts=["example.com"]),
+    @mid.cors,
     @mid.gzip,
-    @mid.Wrap(inner => my_timing(inner)),
   ],
-  framework_app,
+  app,
 )
 ```
 
-| Middleware | What it does | Defaults |
-|:--|:--|:--|
-| `Cors` | Preflights answered here (200, or 400 naming the refusal), the origin echoed with credentials or a cookie | no origin, `GET`, the safelisted headers, 600 s |
-| `Gzip` | Compresses a single-message body of `minimum` octets or more, when gzip is accepted | 500 octets, level 9 |
-| `TrustedHosts` | Other hosts get 400; a bare domain goes to its listed `www.` | any host, redirect on |
-| `HttpsRedirect` | `http` to `https`, `ws` to `wss`, by 307 | — |
-| `ServerErrors` | A 500 if the answer has not started, then the error raised on | no detail; `debug` or a `handler` to say more |
-| `ProxyHeaders` | From a trusted proxy, `X-Forwarded-For` and `X-Forwarded-Proto` (or RFC 7239 `Forwarded`) become the scope's client and scheme | trusts `127.0.0.1` |
-| `BodyLimit` | A request body over the limit is answered 413, by its `Content-Length` or as it streams in | 1 MiB |
-
-Two differences, both deliberate: a body sent in several messages is not compressed, so a stream
-stays a stream; and `Cors` has no origin regex yet. Each record has a preset (`@mid.cors`,
-`@mid.gzip`, ...) and a `::new`, and `{ ..@mid.gzip, level: 1 }` says the same as
-`Gzip::new(level=1)`.
+Each is a record, so a preset can be adjusted in place — `{ ..@mid.gzip, level: 1 }` says the same as `Gzip::new(level=1)`. Your own middleware is a `Wrap`, or a record implementing `Layer`, and stacks with the rest.
 
 ## Several applications behind one
 
-`moonasgi/dispatch` puts several ASGI applications behind one, so one server carries an API,
-an MCP endpoint and a site:
-
-<!-- nocheck -->
 ```moonbit
-let app = @dispatch.mount(
-  [("/api", api_app), ("/mcp", mcp_app)],
-  fallback=site_app,
-)
+let app = @dispatch.mount([
+  ("/api", api_app),
+  ("/mcp", mcp_app),
+])
 let by_host = @dispatch.hosts([("docs.example.com", docs_app)], fallback=app)
 ```
 
-`mount` matches whole path segments and prefers the longest prefix; the application chosen sees
-the path below its prefix and the prefix added to `root_path`. `hosts` matches the `Host` header,
-`*.example.com` for every name below a domain. A path or host nothing takes gets 404, or a
-declined handshake for a WebSocket. The lifespan reaches every application: startup in order,
-shutdown in reverse, one failed startup failing them all; an application that does not take part
-in the lifespan is left out of it.
+`mount` matches whole path segments and prefers the longest prefix; the chosen application sees the path below its prefix, with `root_path` extended. `hosts` matches the `Host` header, and `*.example.com` covers a domain. A path or host nothing takes is answered 404, or a declined handshake on a WebSocket.
+
+The lifespan reaches every application behind the dispatcher: startup in order, shutdown in reverse, and one failed startup fails the whole boot.
 
 ## Synchronous applications
 
-`moonasgi/wsgi` runs a synchronous application, the WSGI shape, on an ASGI server:
-
 ```moonbit
-let legacy : @wsgi.WsgiApp = (environ, start) => {
-  ignore(start("200 OK", [("Content-Type", "text/plain")]))
-  ["hello from ", environ.path_info].iter().map(s => @utf8.encode(s))
+let legacy : @wsgi.WsgiApp = (environ, start_response) => {
+  ignore(start_response("200 OK", [("Content-Type", "text/plain")]))
+  [@utf8.encode("hello from "), @utf8.encode(environ.path_info)].iter()
 }
-let app = @wsgi.to_asgi(legacy)
+
+let app : @moonasgi.AsgiApp = @wsgi.to_asgi(legacy)
 ```
 
-`Environ` carries the CGI variables as fields (`script_name` is the mount point, `path_info` the
-rest), the request headers and the body; `to_map` gives them under their CGI names. The request
-body is read before the application runs; each chunk it yields, or writes through what
-`start_response` returns, is sent as it comes. A WebSocket is declined and the lifespan answered.
+`Environ` carries the CGI variables as fields, and `to_map` gives them under their usual names. The request body is read before the application runs; each chunk it yields is sent as it comes.
 
-## Consumed by
+## Extensions
 
-The seam is the only thing the server and the frameworks share. Each binds to a specific slice of it.
+The optional parts of the specification are typed, not stringly keyed: `http.response.push`, `pathsend`, `zerocopysend`, `early_hint`, `debug`, `trailers`, `websocket.http.response`, and `tls`. A server advertises them on the scope's `extensions`, and an application checks the flag before emitting the matching event. An extension the specification does not name goes in the same map, by name.
 
-**[mooncat](https://github.com/moonbitstack/mooncat)** — the ASGI server. Owns the async `Receive` / `Send` and the native transport, binds `AsgiApp`, and drives every core: it drains the http request body, runs `run_lifespan` at boot and teardown, and drives WebSocket connections. It copies `LifespanScope.state` onto each `HttpScope.state`, serialises the outbound `Event` stream (`HttpResponseStart` / `HttpResponseBody` / `HttpResponseTrailers` / the extension messages) to the socket, and can run `validate_events` over an app's emissions to reject a buggy app before writing.
+## HTTP/2 and HTTP/3
 
-**[moonapi](https://github.com/moonbitstack/moonapi)** — the web framework. Binds at the scope level through `run_http_scoped`, because it reads what the ergonomic `Request` drops: `HttpScope.root_path` (mounted sub-apps), `extensions` (gate a response push or path-send on what the server advertises), `client` (security), and `state` (the lifespan-seeded pool / config). It returns `Response` and `StreamingResponse`, serves its OpenAPI document as an ordinary response, and registers `LifespanHandler` startup / shutdown hooks that mooncat runs.
+`http_version` on a scope is `"1.0"`, `"1.1"`, `"2"` or `"3"`, and an application runs unchanged on any of them. The request line is the one place the transport shows through: on a multiplexed connection it arrives as pseudo-headers.
 
-**[moonzero](https://github.com/moonbitstack/moonzero)** — the service assembler. Wraps its services in middleware (request-id, CORS, logging, recovery) folded over the application, outermost first.
+```moonbit
+let scope = @moonasgi.HttpScope::from_h2_headers([
+  (":method", "POST"),
+  (":scheme", "https"),
+  (":authority", "example.test"),
+  (":path", "/items?page=2"),
+])
+```
 
-The `greet: *` whitebox tests assemble a representative app across all three shapes and drive it through these exact seam points, so the seam is proven greet-ready before any consuming repo is wired up.
+The pseudo-headers are consumed into the typed fields, `host` is synthesised from `:authority`, and a malformed set is refused with the first thing wrong with it.
 
-## Design
+## Packages
 
-- **The seam has no dependencies.** `spec` and the root are pure types plus a small sugar layer; the transport lives in the `mooncat` adapter. Three packages bring one in, which is why each is a package of its own: `mid` uses moonzip for gzip, and `testing` and `dispatch` use moonbitlang/async for its event loop.
-- **A closed connection says so.** A server raises `spec.Closed` from `send` once the connection has closed, so an application that keeps sending learns it and stops.
-- **Faithful, not approximate.** This is a complete transliteration of ASGI 3.0 into MoonBit idiom — the typed `Scope`/`Event` shape is the dialect, not a subset.
+| Package | What is in it |
+|:--|:--|
+| `moonbitstack/moonasgi` | Everything below, re-exported under one import |
+| `…/spec` | The scopes, the events, the extensions, the HTTP/2 lowering |
+| `…/http` | `Request`, `Response`, `StreamingResponse`, the HTTP cores |
+| `…/ws` | `WebSocketHandler`, `WsAccept`, `WsMessage`, `ws_run` |
+| `…/lifespan` | `LifespanHandler` and `run_lifespan` |
+| `…/client` | `TestClient` for handlers and WebSocket sessions |
+| `…/mid` | The middleware stack and the seven above |
+| `…/dispatch` | `mount`, `hosts` and a shared lifespan |
+| `…/wsgi` | A synchronous application on the same events |
+| `…/testing` | A real `AsgiApp` driven in-process, event by event |
+| `…/conform` | The conformance harness and the ordering rules |
 
-## Status
+The seam itself has no dependencies. `mid` uses a compression package; `testing` and `dispatch` use an async runtime for their event loop.
 
-The seam (`Scope`, `Event`, `Receive`, `Send`, `AsgiApp`, `Request`, `Response`), the full extension set, the synchronous cores (`run_http`, `run_http_scoped`, `run_lifespan`, `ws_run`), `TestClient` for HTTP and WebSocket, the conformance harness and its ordering table, HTTP/2 and HTTP/3 pseudo-header lowering, the middleware in `mid`, the async test driver in `testing`, several applications behind one in `dispatch`, and synchronous applications in `wsgi`. Warning-clean on every backend; the tests that drive async applications run where moonbitlang/async has an event loop: native, wasm and js.
+## Examples
+
+<details>
+<summary><b>Nineteen programs, one per feature</b></summary>
+
+Each is a runnable package under [`src/examples`](src/examples):
+
+```bash
+moon run src/examples/00-hello
+```
+
+| # | Example | Shows |
+|:--|:--|:--|
+| 00 | [`hello`](src/examples/00-hello) | A handler, a test client, and the same handler on the raw seam |
+| 01 | [`responses`](src/examples/01-responses) | Text, JSON, bytes, custom status and headers |
+| 02 | [`request-methods`](src/examples/02-request-methods) | Every verb, the request line, a streamed body |
+| 03 | [`middleware`](src/examples/03-middleware) | A chain of handler transformers, outermost first |
+| 04 | [`streaming`](src/examples/04-streaming) | Chunks, trailers and 103 Early Hints |
+| 05 | [`scope`](src/examples/05-scope) | The full scope a framework binds to |
+| 06 | [`extensions`](src/examples/06-extensions) | Capability flags and the extension events |
+| 07 | [`websocket`](src/examples/07-websocket) | Accept, reject, deny, echo |
+| 08 | [`lifespan`](src/examples/08-lifespan) | Startup seeding state, and a failed boot |
+| 09 | [`validate`](src/examples/09-validate) | Naming the first ordering violation |
+| 10 | [`http2`](src/examples/10-http2) | Lowering a HEADERS block |
+| 11 | [`headers`](src/examples/11-headers) | The latin-1 header codec |
+| 12 | [`conformance`](src/examples/12-conformance) | The harness, run |
+| 13 | [`legacy`](src/examples/13-legacy) | The older double-callable shape |
+| 14 | [`stack`](src/examples/14-stack) | Real middleware around a real application |
+| 15 | [`testing`](src/examples/15-testing) | An async application tested in-process |
+| 16 | [`dispatch`](src/examples/16-dispatch) | Three applications behind one |
+| 17 | [`wsgi`](src/examples/17-wsgi) | A synchronous application, mounted |
+| 18 | [`trace`](src/examples/18-trace) | Every event of a request, in order |
+
+</details>
 
 ## License
 

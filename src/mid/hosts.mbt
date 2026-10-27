@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// Only the hosts listed may be asked for, as Starlette's `TrustedHostMiddleware`: a `host`
+/// Only the hosts listed may be asked for: a `host`
 /// header naming another answers 400. `*.example.com` allows any subdomain, `*` alone allows any
 /// host. With `www_redirect`, a request for `example.com` where only `www.example.com` is listed
 /// is sent there.
@@ -18,7 +18,7 @@ pub extend TrustedHosts with Eq::{equal, not_equal}
 pub extend TrustedHosts with Debug::{to_repr}
 
 ///|
-/// Starlette's defaults: any host, and the redirect to `www.` on.
+/// The defaults: any host, and the redirect to `www.` on.
 pub let trusted_hosts : TrustedHosts = { hosts: ["*"], www_redirect: true, }
 
 ///|
@@ -74,7 +74,7 @@ pub impl Layer for TrustedHosts with fn wrap(self, app) {
 }
 
 ///|
-/// Send every plain request to its secure equivalent, as Starlette's `HTTPSRedirectMiddleware`:
+/// Send every plain request to its secure equivalent:
 /// `http` to `https` and `ws` to `wss`, with a 307 so the method and body are kept. Port 80 or 443
 /// in the host is dropped; any other port stays.
 pub(all) struct HttpsRedirect {} derive(Eq, Debug)

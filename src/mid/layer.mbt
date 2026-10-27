@@ -20,8 +20,8 @@ pub impl Layer for Wrap with fn wrap(self, app) {
 }
 
 ///|
-/// `app` inside `layers`, the first outermost: it sees the request first and the response last,
-/// the order Starlette's `middleware=[...]` gives.
+/// `app` inside `layers`, wrapped from the last to the first, so the layer given first sees the
+/// request first and the response last.
 pub fn stack(layers : Array[&Layer], app : @spec.AsgiApp) -> @spec.AsgiApp {
   let mut out = app
   for i = layers.length() - 1; i >= 0; i = i - 1 {
@@ -109,8 +109,7 @@ fn vary(
 
 ///|
 /// Answer without the application: a status, headers and a plain-text body. On a WebSocket the
-/// answer denies the handshake, by the `websocket.http.response` extension, as Starlette's
-/// responses do on a WebSocket scope.
+/// answer denies the handshake, by the `websocket.http.response` extension.
 async fn respond(
   send : @spec.Send,
   status : Int32,
@@ -134,7 +133,7 @@ async fn respond(
 }
 
 ///|
-/// A 307 to `location`: the method and body are kept, as Starlette's `RedirectResponse` does.
+/// A 307 to `location`: the method and body are kept.
 async fn redirect(
   send : @spec.Send,
   location : String,

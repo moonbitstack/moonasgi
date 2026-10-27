@@ -16,7 +16,7 @@ pub type StartResponse = (String, Array[(String, String)]) -> (Bytes) -> Unit
 pub type WsgiApp = (Environ, StartResponse) -> Iter[Bytes] raise
 
 ///|
-/// `app` as an ASGI application (← asgiref's `WsgiToAsgi`). The request body is
+/// `app` as an ASGI application. The request body is
 /// read in full before `app` runs, since it reads it as one value. The status
 /// and headers go out with the first chunk of the body, written or yielded; a
 /// header name is lowered, as ASGI asks of a response.

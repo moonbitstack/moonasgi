@@ -1,5 +1,5 @@
 ///|
-/// An in-process client for a real `AsgiApp`, as Starlette's `TestClient`. Each request runs
+/// An in-process client for a real `AsgiApp`. Each request runs
 /// the application on a fresh scope, feeds it the body, sends `http.disconnect` once the
 /// response is complete, and waits for the application to return, so an error it raises fails
 /// the test. `@client.TestClient` is the synchronous counterpart for event-folding handlers.
@@ -18,7 +18,7 @@ pub(all) struct Client {
 }
 
 ///|
-/// Build a `Client` for `app`. The peers default to Starlette's `("testclient", 50000)` and
+/// Build a `Client` for `app`. The peers default to `("testclient", 50000)` and
 /// `("testserver", 80)`; `timeout` is how long each wait for the application lasts.
 pub fn Client::new(
   app : @spec.AsgiApp,
@@ -230,7 +230,7 @@ pub async fn[X] Client::websocket(
 
 ///|
 /// Run the application's lifespan startup, then `body`, then its shutdown, as entering and
-/// leaving Starlette's `with TestClient(app)`. Startup sees this client's `state`, so what it
+/// leaving the client's lifespan scope. Startup sees this client's `state`, so what it
 /// stores there is in every scope `body` opens. Shutdown runs even if `body` fails.
 ///
 /// Raises `Startup` or `Shutdown` with the application's message when it reports a failure,

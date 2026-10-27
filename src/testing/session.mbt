@@ -1,5 +1,5 @@
 ///|
-/// An accepted WebSocket under test, as the session Starlette's `websocket_connect` yields: the
+/// An accepted WebSocket under test: the
 /// negotiated `subprotocol` and accept `headers`, plus methods that talk to the application.
 pub struct Session {
   priv comm : Communicator
@@ -71,7 +71,7 @@ pub async fn Session::receive_bytes(self : Session, timeout? : Int32) -> Bytes {
 }
 
 ///|
-/// The next message parsed as JSON; text or binary, as Starlette's `receive_json`.
+/// The next message parsed as JSON; text or binary.
 pub async fn Session::receive_json(self : Session, timeout? : Int32) -> Json {
   match self.receive(timeout?) {
     Text(text) => @json.parse(text)

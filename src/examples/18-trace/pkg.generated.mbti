@@ -1,0 +1,15 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonasgi/examples/18-trace"
+
+// Values
+
+// Errors
+
+// Types and methods
+type Driver
+
+type Rec
+
+// Type aliases
+
+// Traits

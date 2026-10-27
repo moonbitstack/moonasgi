@@ -2,17 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// What an application's failure becomes, as Starlette's `ServerErrorMiddleware`: a 500 when the
-/// response has not started, then the error raised on to the server, which logs it. `debug` puts
-/// the error in the body. `handler` writes the answer instead: `(status, headers, body)` for the
-/// error.
+/// What an application's failure becomes: a 500 when the response has not started, then the
+/// error raised on to the server, which logs it. `debug` puts the error in the body. `handler`
+/// writes the answer instead: `(status, headers, body)` for the error.
 pub(all) struct ServerErrors {
   debug : Bool
   handler : ((Error) -> (Int32, Array[(String, String)], String))?
 }
 
 ///|
-/// Starlette's defaults: no detail in the body, the plain 500.
+/// The defaults: no detail in the body, the plain 500.
 pub let server_errors : ServerErrors = { debug: false, handler: None, }
 
 ///|

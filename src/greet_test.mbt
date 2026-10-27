@@ -1,13 +1,12 @@
-// The greet showpiece drives one `.api` spec through mctl → moonapi (framework)
-// → moonzero (assembly + middleware) → mooncat (server), and the SEAM is the only
-// thing those repos share. These tests pin that exactly the Scope/@moonasgi.Event shapes
-// greet uses round-trip losslessly through the seam's synchronous cores, so a
-// green run here is a standing proof the seam is greet-ready before any of the
-// consuming repos is wired up.
+// The greet showpiece: a small service — routing, a validated POST, a served OpenAPI
+// document, a middleware chain, and lifespan-seeded state — assembled the way a
+// framework, an application and a server each meet the seam. These tests pin that
+// exactly the Scope/@moonasgi.Event shapes such a service uses round-trip losslessly
+// through the seam's synchronous cores.
 
 ///|
 /// A JSON response with an explicit content type plus any extra headers a
-/// framework wants to stamp on (moonapi sets `x-root-path` from the scope, which
+/// framework wants to stamp on (a framework sets `x-root-path` from the scope, which
 /// the ergonomic `Request` drops).
 fn json_response(
   status : Int32,
@@ -23,7 +22,7 @@ fn json_response(
 
 ///|
 /// The greeting prefix a lifespan startup seeds into `scope.state`. A request
-/// scope carries a copy of the lifespan state (mooncat copies it on), so reading
+/// scope carries a copy of the lifespan state (a server copies it on), so reading
 /// it here proves the state survived the lifespan→request hop through the seam.
 fn greet_prefix(hs : @moonasgi.HttpScope) -> String {
   match hs.state.get("greeting_prefix") {
@@ -52,7 +51,7 @@ fn parse_name(body : Bytes) -> String? {
 }
 
 ///|
-/// A trimmed OpenAPI document, the shape moonapi serves at `GET /openapi.json`.
+/// A trimmed OpenAPI document, the shape a framework serves at `GET /openapi.json`.
 fn openapi_doc() -> Json {
   Json::object({
     "openapi": Json::string("3.1.0"),
@@ -72,7 +71,7 @@ fn openapi_doc() -> Json {
 }
 
 ///|
-/// A representative moonapi-shaped application, bound at the scope level the way
+/// A representative framework-shaped application, bound at the scope level the way
 /// a framework binds: it dispatches on method + path, reads `root_path` and the
 /// lifespan-seeded `state` off the full `@moonasgi.HttpScope`, drains the request body, and
 /// returns the exact outbound events it would push. This is the `greet` service's
@@ -149,10 +148,10 @@ fn body_json(r : @moonasgi.TestResponse) -> Json {
 }
 
 ///|
-/// moonapi routing round-trips through the scope-aware seam core: request line,
+/// Routing round-trips through the scope-aware seam core: request line,
 /// query, body, headers, `root_path`, and the served response all survive
 /// lowering to events and reassembly, and every emitted stream is well-formed.
-test "greet: moonapi http routing round-trips through @http.run_http_scoped" {
+test "greet: http routing round-trips through @http.run_http_scoped" {
   // Health check: GET /ping. The framework reads root_path off the scope (the
   // ergonomic Request drops it) and stamps it onto the response.
   let (ping, ping_v) = drive_greet(
@@ -245,7 +244,7 @@ test "greet: lifespan startup seeds state that reaches the request handler" {
   assert_eq(boot.state.get("db_pool") is Some(_), true)
   assert_eq(@conform.validate_events(ls_scope, up) is None, true)
 
-  // mooncat copies the lifespan state onto each request scope; the framework
+  // a server copies the lifespan state onto each request scope; the framework
   // greets with the prefix that startup seeded, proving the state carried across.
   let (r, v) = drive_greet(
     @moonasgi.HttpScope::new(
@@ -279,11 +278,11 @@ test "greet: lifespan startup seeds state that reaches the request handler" {
 }
 
 ///|
-/// The moonzero middleware chain composes over a greet handler and drives end to
+/// A middleware chain composes over a greet handler and drives end to
 /// end through the `@moonasgi.TestClient` (the ergonomic path a request-oriented handler
 /// takes): request-id, CORS, and logging headers land outermost-first and the
 /// body round-trips untouched.
-test "greet: the moonzero middleware chain round-trips through the @moonasgi.TestClient" {
+test "greet: the middleware chain round-trips through the @moonasgi.TestClient" {
   let request_id : @moonasgi.Middleware = fn(next) {
     fn(req) {
       let r = next(req)

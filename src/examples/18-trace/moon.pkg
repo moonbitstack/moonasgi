@@ -1,0 +1,20 @@
+import {
+  "moonbitstack/moonasgi",
+  "moonbitstack/moonasgi/dispatch",
+  "moonbitstack/moonasgi/mid",
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/wsgi",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+}
+
+pkgtype(kind: "executable")
+
+warnings = "-29"
+
+options(
+  targets: {
+    "main.mbt": [ "native", "wasm", "js" ],
+    "elsewhere.mbt": [ "wasm-gc" ],
+  },
+)

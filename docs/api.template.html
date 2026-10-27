@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>API reference — moonasgi</title>
+<meta name="description" content="Every public type, function and value in moonasgi, generated from the package interfaces and the doc comments in the source.">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("moonasgi-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="icon-btn menu-btn" id="menu-toggle" aria-label="Sections" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="index.html">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" fill="none"><rect x="2.5" y="3" width="19" height="6.6" rx="1.6" fill="currentColor" opacity=".95"/><rect x="2.5" y="14.4" width="19" height="6.6" rx="1.6" fill="currentColor" opacity=".5"/><circle cx="12" cy="12" r="1.9" fill="currentColor"/></svg>
+      moonasgi<small>ASGI 3.0</small>
+    </a>
+    <div class="top-actions">
+      <button class="search-open" data-open-search aria-label="Search the documentation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <span>Search</span><kbd>/</kbd>
+      </button>
+      <a class="icon-btn" href="https://asgi.readthedocs.io/" title="ASGI specification" aria-label="ASGI specification" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h4"/></svg></a>
+      <a class="icon-btn" href="https://github.com/moonbitstack/moonasgi" title="Source on GitHub" aria-label="Source on GitHub" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
+      <button class="icon-btn" id="theme-toggle" aria-label="Switch theme"></button>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="side-group">
+      <span class="side-label">Start</span>
+      <a class="side-link" href="index.html">Overview</a>
+      <a class="side-link" href="guide.html">Guide</a>
+      <a class="side-link" href="events.html">Event timeline</a>
+      <a class="side-link" href="api.html" aria-current="page">API reference</a>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Packages</span>
+      <a class="side-link" href="#moonasgi-spec-top">spec</a>
+      <a class="side-link" href="#moonasgi-http-top">http</a>
+      <a class="side-link" href="#moonasgi-ws-top">ws</a>
+      <a class="side-link" href="#moonasgi-lifespan-top">lifespan</a>
+      <a class="side-link" href="#moonasgi-client-top">client</a>
+      <a class="side-link" href="#moonasgi-mid-top">mid</a>
+      <a class="side-link" href="#moonasgi-dispatch-top">dispatch</a>
+      <a class="side-link" href="#moonasgi-wsgi-top">wsgi</a>
+      <a class="side-link" href="#moonasgi-testing-top">testing</a>
+      <a class="side-link" href="#moonasgi-conform-top">conform</a>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Elsewhere</span>
+      <a class="side-link" href="https://asgi.readthedocs.io/" target="_blank" rel="noreferrer">ASGI specification</a>
+      <a class="side-link" href="https://mooncakes.io/docs/moonbitstack/moonasgi" target="_blank" rel="noreferrer">mooncakes</a>
+      <a class="side-link" href="https://github.com/moonbitstack/moonasgi" target="_blank" rel="noreferrer">GitHub</a>
+    </div>
+    <p class="side-note">Import once with <code>moon add moonbitstack/moonasgi</code>, then reach every package through <code>@moonasgi</code>.</p>
+  </aside>
+
+  <main class="content">
+    <article class="page">
+      <p class="eyebrow">Reference</p>
+      <h1>API reference</h1>
+      <p class="lede">Every public type, function and value, in the package it comes from. Straight from the interfaces and the doc comments in the source.</p>
+
+      <div class="calm">
+        <span class="calm-label">How this page is made</span>
+        <p><code>scripts/gen_api.py</code> reads each package's <code>pkg.generated.mbti</code> and the <code>///</code> comments beside the code, then writes this page. If a declaration changes and the page does not, the build fails.</p>
+      </div>
+
+      <!-- body -->
+
+      <nav class="prevnext">
+        <a class="prev" href="guide.html"><span class="dir">Previous</span><span class="what">Guide</span></a>
+        <a class="next" href="events.html"><span class="dir">Next</span><span class="what">Event timeline</span></a>
+      </nav>
+    </article>
+
+    <footer class="site-foot">
+      <span>moonasgi · Apache-2.0</span>
+      <a href="https://github.com/moonbitstack/moonasgi">GitHub</a>
+      <a href="https://asgi.readthedocs.io/">ASGI 3.0</a>
+      <a href="https://mooncakes.io/docs/moonbitstack/moonasgi">mooncakes</a>
+      <span class="spacer">Generated page — do not edit by hand.</span>
+    </footer>
+  </main>
+
+  <aside class="toc" id="toc"></aside>
+</div>
+
+<div class="search-dialog" id="search" hidden>
+  <div class="search-panel" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="search-field">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <input id="search-input" type="search" placeholder="Search types, functions, sections" autocomplete="off" spellcheck="false">
+    </div>
+    <ul class="search-list" id="search-results"></ul>
+  </div>
+</div>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// Gzip for responses a client accepts it for, as Starlette's `GZipMiddleware`: a body of at
+/// Gzip for responses a client accepts it for: a body of at
 /// least `minimum` octets, sent in one message, not already content-encoded. `level` is the
 /// zlib effort, 0 to 9.
 ///
@@ -21,7 +21,7 @@ pub extend Gzip with Eq::{equal, not_equal}
 pub extend Gzip with Debug::{to_repr}
 
 ///|
-/// Starlette's defaults: 500 octets and up, the most effort.
+/// The defaults: 500 octets and up, the most effort.
 pub let gzip : Gzip = { minimum: 500, level: 9, }
 
 ///|

@@ -1,6 +1,7 @@
 .*
 !.git*
 !.moonignore
+!.nojekyll
 _*
 target/
 

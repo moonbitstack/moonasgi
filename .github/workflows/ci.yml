@@ -59,3 +59,8 @@ jobs:
       - name: interfaces are up to date
         run: |
           moon info --target all && git -c core.autocrlf=false diff --ignore-cr-at-eol --exit-code
+
+      - name: the API page follows the interfaces
+        run: |
+          python3 scripts/gen_api.py || python scripts/gen_api.py
+          git -c core.autocrlf=false diff --exit-code docs/api.html docs/assets/search.json

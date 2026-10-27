@@ -1,0 +1,571 @@
+{
+  "scenarios": [
+    {
+      "id": "hello",
+      "title": "A handler answers",
+      "request": "GET /notes",
+      "blurb": "One handler, lifted onto the seam. The scope goes in, the body is pulled, two events come out.",
+      "result": "200 · 19 B · hello from the seam",
+      "steps": [
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "GET /notes · HTTP/1.1 · http",
+          "note": "the server builds one scope per request and hands it over"
+        },
+        {
+          "lane": "in",
+          "title": "http.request",
+          "body": "body 0 B · more_body false",
+          "note": "the application pulls the next event in"
+        },
+        {
+          "lane": "app",
+          "title": "the handler runs",
+          "body": "GET /notes",
+          "note": "it sees a plain request, not a scope: method, path, headers, body"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.start",
+          "body": "200 · 1 headers · trailers false",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 19 B · more_body false",
+          "note": "the application pushes it back to the server"
+        }
+      ]
+    },
+    {
+      "id": "chunked",
+      "title": "A body arrives in pieces",
+      "request": "POST /items",
+      "blurb": "The client sends the body in two events. The application pulls until `more_body` is false.",
+      "result": "201 · 15 B · {\"name\": \"ada\"}",
+      "steps": [
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "POST /items · HTTP/1.1 · http",
+          "note": "a streamed upload, cut into two events"
+        },
+        {
+          "lane": "in",
+          "title": "http.request",
+          "body": "body 9 B · more_body true",
+          "note": "the application pulls the next event in"
+        },
+        {
+          "lane": "in",
+          "title": "http.request",
+          "body": "body 6 B · more_body false",
+          "note": "the application pulls the next event in"
+        },
+        {
+          "lane": "app",
+          "title": "the handler runs",
+          "body": "15 B of body",
+          "note": "the seam drained every chunk first, so the handler reads one buffer"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.start",
+          "body": "201 · 1 headers · trailers false",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 15 B · more_body false",
+          "note": "the application pushes it back to the server"
+        }
+      ]
+    },
+    {
+      "id": "streaming",
+      "title": "A streamed answer",
+      "request": "GET /feed",
+      "blurb": "A 103 goes out before the headers, three chunks follow, and the trailers close the body.",
+      "result": "200 · 3 chunks · 21 B · trailers x-checksum",
+      "steps": [
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "GET /feed · HTTP/1.1 · http · early_hint and trailers advertised",
+          "note": "the server said it honours both extensions, so the response may use them"
+        },
+        {
+          "lane": "in",
+          "title": "http.request",
+          "body": "body 0 B · more_body false",
+          "note": "no request body to read"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.early_hint",
+          "body": "1 links",
+          "note": "lowered from the streaming response, in wire order"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.start",
+          "body": "200 · 1 headers · trailers true",
+          "note": "lowered from the streaming response, in wire order"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 7 B · more_body true",
+          "note": "lowered from the streaming response, in wire order"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 7 B · more_body true",
+          "note": "lowered from the streaming response, in wire order"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 7 B · more_body false",
+          "note": "lowered from the streaming response, in wire order"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.trailers",
+          "body": "1 headers",
+          "note": "lowered from the streaming response, in wire order"
+        }
+      ]
+    },
+    {
+      "id": "layers",
+      "title": "Wrapped in middleware",
+      "request": "GET / · accept-encoding: gzip",
+      "blurb": "Server errors, gzip and CORS wrap the application. The request goes in, the compressed answer comes back out.",
+      "result": "200 · 34 B gzip · 2 KiB before compression",
+      "steps": [
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "GET / · HTTP/1.1 · https",
+          "note": "the layers below see the same scope"
+        },
+        {
+          "lane": "mw",
+          "title": "→ ServerErrors",
+          "body": "the request enters this layer",
+          "note": "each layer wraps the next, so the first given is the outermost"
+        },
+        {
+          "lane": "mw",
+          "title": "→ Gzip",
+          "body": "the request enters this layer",
+          "note": "each layer wraps the next, so the first given is the outermost"
+        },
+        {
+          "lane": "mw",
+          "title": "→ Cors",
+          "body": "the request enters this layer",
+          "note": "each layer wraps the next, so the first given is the outermost"
+        },
+        {
+          "lane": "app",
+          "title": "the application answers",
+          "body": "200 · 2 KiB of text",
+          "note": "the innermost thing in the stack is the only one that knows about the site"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.start",
+          "body": "200 · 4 headers · trailers false",
+          "note": "the stack let it through after the layers had their turn"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 34 B · more_body false",
+          "note": "the stack let it through after the layers had their turn"
+        },
+        {
+          "lane": "mw",
+          "title": "← Cors",
+          "body": "the answer leaves through it",
+          "note": "on the way out the order reverses"
+        },
+        {
+          "lane": "mw",
+          "title": "← Gzip",
+          "body": "the answer leaves through it",
+          "note": "on the way out the order reverses"
+        },
+        {
+          "lane": "mw",
+          "title": "← ServerErrors",
+          "body": "the answer leaves through it",
+          "note": "on the way out the order reverses"
+        }
+      ]
+    },
+    {
+      "id": "routes",
+      "title": "One server, several applications",
+      "request": "GET /api/items · GET / with host docs.example.test",
+      "blurb": "A prefix picks the API, a host name picks the docs site, and a path no prefix takes is answered 404.",
+      "result": "200 the api · 200 the docs host · 404",
+      "steps": [
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "GET /api/items · HTTP/1.1 · http",
+          "note": "one server, three applications behind it"
+        },
+        {
+          "lane": "app",
+          "title": "the api",
+          "body": "GET /items · root_path /api",
+          "note": "the dispatcher rewrote the path below the prefix and extended root_path"
+        },
+        {
+          "lane": "in",
+          "title": "http.request",
+          "body": "body 0 B · more_body false",
+          "note": "the application pulls the next event in"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.start",
+          "body": "200 · 1 headers · trailers false",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 7 B · more_body false",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "GET / · host docs.example.test",
+          "note": "the same server, picking on the Host header this time"
+        },
+        {
+          "lane": "app",
+          "title": "the docs host",
+          "body": "GET / · root_path ",
+          "note": "the dispatcher rewrote the path below the prefix and extended root_path"
+        },
+        {
+          "lane": "in",
+          "title": "http.request",
+          "body": "body 0 B · more_body false",
+          "note": "the application pulls the next event in"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.start",
+          "body": "200 · 1 headers · trailers false",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 13 B · more_body false",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "GET /nowhere · HTTP/1.1 · http",
+          "note": "a path no prefix takes"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.start",
+          "body": "404 · 1 headers · trailers false",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 9 B · more_body false",
+          "note": "the application pushes it back to the server"
+        }
+      ]
+    },
+    {
+      "id": "boot",
+      "title": "Booting three applications",
+      "request": "lifespan.startup · lifespan.shutdown",
+      "blurb": "One lifespan drives all three applications: startup in order, shutdown in reverse.",
+      "result": "startup complete · shutdown complete",
+      "steps": [
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "lifespan · spec 2.0",
+          "note": "one lifespan run for all three applications behind the server"
+        },
+        {
+          "lane": "in",
+          "title": "lifespan.startup",
+          "body": "",
+          "note": "the application pulls the next event in"
+        },
+        {
+          "lane": "app",
+          "title": "the api starts",
+          "body": "opens what it needs",
+          "note": "startup runs in the order the applications were given"
+        },
+        {
+          "lane": "app",
+          "title": "the mcp endpoint starts",
+          "body": "opens what it needs",
+          "note": "startup runs in the order the applications were given"
+        },
+        {
+          "lane": "app",
+          "title": "the site starts",
+          "body": "opens what it needs",
+          "note": "startup runs in the order the applications were given"
+        },
+        {
+          "lane": "out",
+          "title": "lifespan.startup.complete",
+          "body": "",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "in",
+          "title": "lifespan.shutdown",
+          "body": "",
+          "note": "the application pulls the next event in"
+        },
+        {
+          "lane": "app",
+          "title": "the site stops",
+          "body": "releases what it opened",
+          "note": "shutdown runs in reverse, so what started last stops first"
+        },
+        {
+          "lane": "app",
+          "title": "the mcp endpoint stops",
+          "body": "releases what it opened",
+          "note": "shutdown runs in reverse, so what started last stops first"
+        },
+        {
+          "lane": "app",
+          "title": "the api stops",
+          "body": "releases what it opened",
+          "note": "shutdown runs in reverse, so what started last stops first"
+        },
+        {
+          "lane": "out",
+          "title": "lifespan.shutdown.complete",
+          "body": "",
+          "note": "the application pushes it back to the server"
+        }
+      ]
+    },
+    {
+      "id": "legacy",
+      "title": "A synchronous application",
+      "request": "GET /legacy/greet",
+      "blurb": "An application written the old synchronous way, adapted onto the same events as everything else.",
+      "result": "200 · 24 B · hello from /greet",
+      "steps": [
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "GET /legacy/greet · HTTP/1.1 · http · root_path /legacy",
+          "note": "the adapter lowers the scope to the variables a synchronous application expects"
+        },
+        {
+          "lane": "in",
+          "title": "http.request",
+          "body": "body 0 B · more_body false",
+          "note": "the application pulls the next event in"
+        },
+        {
+          "lane": "app",
+          "title": "the synchronous application runs",
+          "body": "GET /legacy/greet",
+          "note": "it is handed CGI-style variables, not a scope, and yields its body"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.start",
+          "body": "200 · 1 headers · trailers false",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 11 B · more_body true",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 13 B · more_body true",
+          "note": "the application pushes it back to the server"
+        },
+        {
+          "lane": "out",
+          "title": "http.response.body",
+          "body": "body 0 B · more_body false",
+          "note": "the application pushes it back to the server"
+        }
+      ]
+    },
+    {
+      "id": "socket",
+      "title": "A WebSocket conversation",
+      "request": "GET /chat · Upgrade: websocket",
+      "blurb": "A handshake with a subprotocol, one text frame and one binary frame each way, then a clean close.",
+      "result": "accepted chat.v2 · 2 frames echoed",
+      "steps": [
+        {
+          "lane": "scope",
+          "title": "scope",
+          "body": "websocket /chat · offers chat.v2, chat.v1",
+          "note": "a WebSocket scope is the http one plus the subprotocols on offer"
+        },
+        {
+          "lane": "in",
+          "title": "websocket.connect",
+          "body": "",
+          "note": "one event per thing the client did"
+        },
+        {
+          "lane": "in",
+          "title": "websocket.receive",
+          "body": "text · 5 B",
+          "note": "one event per thing the client did"
+        },
+        {
+          "lane": "in",
+          "title": "websocket.receive",
+          "body": "binary · 2 B",
+          "note": "one event per thing the client did"
+        },
+        {
+          "lane": "in",
+          "title": "websocket.disconnect",
+          "body": "code 1000 · reason done",
+          "note": "one event per thing the client did"
+        },
+        {
+          "lane": "app",
+          "title": "the handler accepts",
+          "body": "subprotocol chat.v2",
+          "note": "it picks one of the subprotocols the client offered"
+        },
+        {
+          "lane": "app",
+          "title": "the handler echoes",
+          "body": "hello",
+          "note": "every frame is answered on the spot"
+        },
+        {
+          "lane": "app",
+          "title": "the handler acknowledges",
+          "body": "2 B binary",
+          "note": "binary frames are answered in kind"
+        },
+        {
+          "lane": "app",
+          "title": "the handler sees the disconnect",
+          "body": "code 1000 · reason done",
+          "note": "the close code and reason arrive together"
+        },
+        {
+          "lane": "out",
+          "title": "websocket.accept",
+          "body": "subprotocol chat.v2 · 0 headers",
+          "note": "the WebSocket core lowers what the handler returned"
+        },
+        {
+          "lane": "out",
+          "title": "websocket.send",
+          "body": "text · 5 B",
+          "note": "the WebSocket core lowers what the handler returned"
+        },
+        {
+          "lane": "out",
+          "title": "websocket.send",
+          "body": "binary · 2 B",
+          "note": "the WebSocket core lowers what the handler returned"
+        }
+      ]
+    },
+    {
+      "id": "letters",
+      "title": "A request on HTTP/2",
+      "request": "POST /items?page=2 · :authority example.test",
+      "blurb": "An HTTP/2 or HTTP/3 request carries its request line as pseudo-headers. Lowering them is part of the seam.",
+      "result": "POST /items · page=2 · host example.test",
+      "steps": [
+        {
+          "lane": "in",
+          "title": ":method",
+          "body": "POST",
+          "note": "a pseudo-header: part of the request line, not a header the application sees"
+        },
+        {
+          "lane": "in",
+          "title": ":scheme",
+          "body": "https",
+          "note": "a pseudo-header: part of the request line, not a header the application sees"
+        },
+        {
+          "lane": "in",
+          "title": ":authority",
+          "body": "example.test",
+          "note": "a pseudo-header: part of the request line, not a header the application sees"
+        },
+        {
+          "lane": "in",
+          "title": ":path",
+          "body": "/items?page=2",
+          "note": "a pseudo-header: part of the request line, not a header the application sees"
+        },
+        {
+          "lane": "in",
+          "title": "content-type",
+          "body": "application/json",
+          "note": "an ordinary field, passed through as it came"
+        },
+        {
+          "lane": "scope",
+          "title": "http_method",
+          "body": "POST",
+          "note": "lowered from :method"
+        },
+        {
+          "lane": "scope",
+          "title": "path",
+          "body": "/items",
+          "note": "lowered from :path, query split off"
+        },
+        {
+          "lane": "scope",
+          "title": "query_string",
+          "body": "page=2",
+          "note": "the part after ? in :path"
+        },
+        {
+          "lane": "scope",
+          "title": "headers",
+          "body": "2 · host example.test",
+          "note": "host is synthesised from :authority; no colon-prefixed header survives"
+        }
+      ]
+    }
+  ]
+}

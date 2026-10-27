@@ -1,9 +1,9 @@
 // The header wire codec (ASGI www spec). ASGI types headers as byte-string pairs;
 // the seam carries them as `(String, String)` because latin-1 (ISO-8859-1) is the
 // bijection between bytes 0x00..0xFF and code points U+0000..U+00FF, so every header
-// byte round-trips through a MoonBit String losslessly — the same decode Starlette
-// applies internally. A server adapter (mooncat's HTTP/1.1 codec, moonrpc's HPACK)
-// crosses this boundary once with `headers_from_wire` / `headers_to_wire`, so the
+// byte round-trips through a MoonBit String losslessly. A server adapter (an HTTP/1.1
+// codec, an HPACK decoder) crosses this boundary once with `headers_from_wire` /
+// `headers_to_wire`, so the
 // codec discipline lives in one place instead of being re-derived per consumer.
 
 ///|

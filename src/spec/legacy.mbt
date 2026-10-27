@@ -3,9 +3,8 @@
 // server is encouraged to keep running legacy 2.0 apps for backward compatibility.
 // A legacy app's first callable is synchronous and takes the scope, returning the
 // asynchronous instance that then drives the connection. MoonBit has no signature or
-// attribute reflection to auto-detect the convention the way asgiref's
-// guarantee_single_callable does, so the two conventions are distinct types and the
-// choice is an explicit constructor (AsgiApplication) — the same shape Rust/Go take.
+// attribute reflection to auto-detect the convention, so the two conventions are
+// distinct types and the choice is an explicit constructor (AsgiApplication).
 
 ///|
 /// The asynchronous instance a legacy app's first callable returns: already bound to
@@ -20,17 +19,17 @@ pub type LegacyAsgiApp = (Scope) -> AsgiAppInstance
 ///|
 /// An application in either calling convention — the current 3.0 single-callable form
 /// or the legacy 2.0 double-callable form. A server holds one of these and normalizes
-/// it with `guarantee_single_callable`; the enum is the typed, reflection-free stand-in
-/// for asgiref detecting the convention at runtime.
+/// it with `guarantee_single_callable`; the enum is the typed, reflection-free way
+/// to name which convention an application is written in.
 pub(all) enum AsgiApplication {
   Single(AsgiApp)
   Legacy(LegacyAsgiApp)
 }
 
 ///|
-/// Wrap a legacy 2.0 double-callable app as a 3.0 single-callable `AsgiApp`
-/// (asgiref's `double_to_single_callable`): call the first callable with the scope to
-/// get the instance, then drive it with `receive` / `send`.
+/// Wrap a legacy 2.0 double-callable app as a 3.0 single-callable `AsgiApp`: call the
+/// first callable with the scope to get the instance, then drive it with `receive` /
+/// `send`.
 pub fn double_to_single_callable(app : LegacyAsgiApp) -> AsgiApp {
   (scope, receive, send) => {
     let instance = app(scope)
@@ -39,9 +38,9 @@ pub fn double_to_single_callable(app : LegacyAsgiApp) -> AsgiApp {
 }
 
 ///|
-/// Normalize any application to a single-callable `AsgiApp` (asgiref's
-/// `guarantee_single_callable`): a 3.0 app passes straight through, a legacy 2.0 app
-/// is wrapped. A server calls this once and then only ever drives single-callables.
+/// Normalize any application to a single-callable `AsgiApp`: a 3.0 app passes
+/// straight through, and a legacy 2.0 app is wrapped. A server calls this once and
+/// then only ever drives single-callables.
 pub fn guarantee_single_callable(app : AsgiApplication) -> AsgiApp {
   match app {
     Single(a) => a

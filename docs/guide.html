@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guide — moonasgi</title>
+<meta name="description" content="From the first response to a full stack: a guided tour of moonasgi, with the real output of every snippet.">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("moonasgi-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="icon-btn menu-btn" id="menu-toggle" aria-label="Sections" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="index.html">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" fill="none"><rect x="2.5" y="3" width="19" height="6.6" rx="1.6" fill="currentColor" opacity=".95"/><rect x="2.5" y="14.4" width="19" height="6.6" rx="1.6" fill="currentColor" opacity=".5"/><circle cx="12" cy="12" r="1.9" fill="currentColor"/></svg>
+      moonasgi<small>ASGI 3.0</small>
+    </a>
+    <div class="top-actions">
+      <button class="search-open" data-open-search aria-label="Search the documentation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <span>Search</span><kbd>/</kbd>
+      </button>
+      <a class="icon-btn" href="https://asgi.readthedocs.io/" title="ASGI specification" aria-label="ASGI specification" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h4"/></svg></a>
+      <a class="icon-btn" href="https://github.com/moonbitstack/moonasgi" title="Source on GitHub" aria-label="Source on GitHub" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
+      <button class="icon-btn" id="theme-toggle" aria-label="Switch theme"></button>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="side-group">
+      <span class="side-label">Start</span>
+      <a class="side-link" href="index.html">Overview</a>
+      <a class="side-link" href="guide.html" aria-current="page">Guide</a>
+      <a class="side-link" href="events.html">Event timeline</a>
+      <a class="side-link" href="api.html">API reference</a>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Chapters</span>
+      <a class="side-link" href="#install">Install</a>
+      <a class="side-link" href="#first">A first response</a>
+      <a class="side-link" href="#request">Reading a request</a>
+      <a class="side-link" href="#scope">The scope</a>
+      <a class="side-link" href="#streaming">Streaming</a>
+      <a class="side-link" href="#extensions">Extensions</a>
+      <a class="side-link" href="#websocket">WebSocket</a>
+      <a class="side-link" href="#lifespan">Lifespan</a>
+      <a class="side-link" href="#middleware">Middleware</a>
+      <a class="side-link" href="#dispatch">Several applications</a>
+      <a class="side-link" href="#wsgi">Synchronous applications</a>
+      <a class="side-link" href="#testing">Testing an application</a>
+      <a class="side-link" href="#honest">Keeping it honest</a>
+      <a class="side-link" href="#http2">HTTP/2 request lines</a>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Elsewhere</span>
+      <a class="side-link" href="https://asgi.readthedocs.io/" target="_blank" rel="noreferrer">ASGI specification</a>
+      <a class="side-link" href="https://mooncakes.io/docs/moonbitstack/moonasgi" target="_blank" rel="noreferrer">mooncakes</a>
+      <a class="side-link" href="https://github.com/moonbitstack/moonasgi" target="_blank" rel="noreferrer">GitHub</a>
+    </div>
+    <p class="side-note">Every output on this page was printed by the code above it. The programs live under <code>src/examples</code>.</p>
+  </aside>
+
+  <main class="content">
+    <article class="page">
+      <p class="eyebrow">Guide</p>
+      <h1>A guided tour</h1>
+      <p class="lede">Fourteen steps, from one handler to a server carrying several applications. Each step is a program you can run, and the output under it is what it printed.</p>
+
+      <h2 id="install">Install</h2>
+      <p>Add the package to a project. There is nothing else to configure: no transport lives in here.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">terminal</span><button class="copy" data-copy="">copy</button></div>
+        <pre><code>moon add moonbitstack/moonasgi</code></pre>
+      </div>
+      <p>It brings one import name. Everything below is reachable through it.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moon.pkg</span><button class="copy" data-copy="">copy</button></div>
+        <pre><code>import {
+  "moonbitstack/moonasgi",
+}</code></pre>
+      </div>
+      <p>A few chapters use a subpackage by name — <code>@spec</code> for the event types, <code>@mid</code> for middleware, <code>@dispatch</code> for routing, <code>@testing</code> for the async client, <code>@wsgi</code> for the adapter. Import only the ones you reach for:</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moon.pkg</span><button class="copy" data-copy="">copy</button></div>
+        <pre><code>import {
+  "moonbitstack/moonasgi",
+  "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/mid",
+  "moonbitstack/moonasgi/dispatch",
+  "moonbitstack/moonasgi/testing",
+  "moonbitstack/moonasgi/wsgi",
+  "moonbitlang/core/encoding/utf8",
+}</code></pre>
+      </div>
+
+      <h2 id="first">A first response</h2>
+      <p>A handler takes a request and returns a response. The <code>TestClient</code> drives one without a socket, so this runs on any backend.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let greet : @moonasgi.Handler = fn(_request) {
+  @moonasgi.Response::text("hello")
+}
+let client = @moonasgi.TestClient::new(greet)
+let response = client.get("/")
+println("\{response.status} \{response.text()}")</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>200 hello</div>
+
+      <h2 id="request">Reading a request</h2>
+      <p>The request carries the method, the path, the raw query string, the headers as they arrived, and the body as one buffer. The body is drained before the handler runs, however many events it took.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let echo : @moonasgi.Handler = fn(request) {
+  let query = @moonasgi.latin1_decode(request.query_string)
+  @moonasgi.Response::text(
+    "\{request.http_method} \{request.path}?\{query} \{request.body.length()} B",
+  )
+}
+let client = @moonasgi.TestClient::new(echo)
+println(client.get("/items?q=moonbit").text())
+println(client.post("/orders", body=b"n=1").text())</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>GET /items?q=moonbit 0 B
+POST /orders? 3 B</div>
+      <p>Bytes arrive as <code>Bytes</code>, and headers stay a list of pairs, so a repeated header survives. Nothing is folded into a map behind your back.</p>
+
+      <h2 id="scope">The scope</h2>
+      <p>A handler does not see everything. A mounted application needs <code>root_path</code>, security needs the peer address, and a feature needs to know what the server advertises. <code>run_http_scoped</code> hands over the whole scope instead.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let app = fn(scope : @moonasgi.HttpScope, body : Bytes) {
+  let peer = match scope.client {
+    Some((host, _)) => host
+    None => "-"
+  }
+  [
+    @spec.HttpResponseStart(status=200, headers=[], trailers=false),
+    @spec.HttpResponseBody(
+      body=@utf8.encode("\{scope.root_path} · \{peer} · \{body.length()} B"),
+      more_body=false,
+    ),
+  ]
+}
+let scope = @moonasgi.Scope::Http(
+  @moonasgi.HttpScope::new(
+    http_method="GET",
+    path="/greet",
+    root_path="/api",
+    client=("203.0.113.7", 52333),
+  ),
+)
+let out = @moonasgi.run_http_scoped(app, scope, [
+  @spec.HttpRequest(body=b"hi", more_body=false),
+])
+for event in out {
+  if event is @spec.HttpResponseBody(body~, ..) {
+    println(@utf8.decode_lossy(body))
+  }
+}</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>/api · 203.0.113.7 · 2 B</div>
+      <p>There is also <code>run_http_app</code>, the same call at request level, and <code>run_http_scoped_drain</code>, which also tells the application whether the client vanished or the body was cut short.</p>
+
+      <h2 id="streaming">Streaming</h2>
+      <p>A <code>StreamingResponse</code> sends its body in pieces, may announce hints before the headers, and may close with trailers. <code>events</code> lowers it to the exact sequence a server writes.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let feed : @moonasgi.StreamHandler = fn(_request) {
+  @moonasgi.StreamingResponse::new(
+    status=200,
+    headers=[("content-type", "text/event-stream")],
+    chunks=[b"data: 233\n\n", b"data: 666\n\n", b"data: done\n\n"],
+    trailers=[("x-digest", "heke1228")],
+    early_hints=[["</a.css>; rel=preload"], ["</b.js>; rel=preload"]],
+  )
+}
+let client = @moonasgi.TestClient::from_stream(feed)
+let response = client.get("/events")
+println(response.text())
+println(response.trailer("x-digest").unwrap_or("-"))
+println("\{response.early_hints.length()} early hints")</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>data: 233
+
+data: 666
+
+data: done
+
+
+heke1228
+2 early hints</div>
+      <p>The client reassembles the chunks into one body and keeps the trailers and hints apart, so a test can assert on any of them.</p>
+
+      <h2 id="extensions">Extensions</h2>
+      <p>The optional parts of the specification are typed here too: push, path send, zero-copy send, early hints, debug, trailers, and the WebSocket denial. A server advertises what it honours on the scope, and the application reads the flags.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let extensions = @moonasgi.Extensions::none()
+  .enable_push()
+  .enable_pathsend()
+  .enable_early_hint()
+println("push=\{extensions.http_response_push} pathsend=\{extensions.http_response_pathsend}")
+println("early_hint=\{extensions.http_response_early_hint}")</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>push=true pathsend=true
+early_hint=true</div>
+      <p>An extension the specification does not name goes in the same place, by name, with whatever value the server wants to hand over.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let custom = @moonasgi.Extensions::none().enable("http.fullflush")
+println("present=\{custom.get("http.fullflush") is Some(_)}")</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>present=true</div>
+
+      <h2 id="websocket">WebSocket</h2>
+      <p>A WebSocket handler is three functions: what to do on connect, what to answer for a frame, what to do when the client leaves. <code>ws_run</code> and the client drive a whole connection in-process.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let handler = @moonasgi.WebSocketHandler::new(
+  on_receive=fn(message) {
+    match message {
+      Text(text) => [SendText("echo:" + text)]
+      Binary(bytes) => [SendBinary(bytes)]
+    }
+  },
+)
+let app : @moonasgi.Handler = fn(_request) { @moonasgi.Response::text("") }
+let session = @moonasgi.TestClient::new(app).websocket(
+  path="/chat",
+  handler~,
+  send=[Text("hi"), Text("there")],
+)
+println("accepted=\{session.accepted} texts=\{session.texts().join(" ")}")</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>accepted=true texts=echo:hi echo:there</div>
+      <p>Connect can also answer with a close code, or with a whole HTTP response when the handshake should be refused: <code>Accept</code>, <code>Reject</code>, <code>DenyHttp</code>.</p>
+
+      <h2 id="lifespan">Lifespan</h2>
+      <p>Startup runs once, before any request, and seeds <code>scope.state</code> in place. The server copies that map onto every request scope, which is how a pool or a config reaches a handler.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let lifecycle = @moonasgi.LifespanHandler::new(
+  on_startup=fn(scope) {
+    scope.state["greeting"] = Json::string("Bonjour")
+    Complete
+  },
+)
+let scope = @spec.LifespanScope::new()
+let replies = @moonasgi.run_lifespan(lifecycle, Lifespan(scope), [
+  @spec.LifespanStartup,
+  @spec.LifespanShutdown,
+])
+for reply in replies {
+  println(match reply {
+    LifespanStartupComplete => "startup.complete"
+    LifespanShutdownComplete => "shutdown.complete"
+    _ => "other"
+  })
+}
+println(match scope.state.get("greeting") {
+  Some(Json::String(s)) => s
+  _ => "none"
+})</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>startup.complete
+shutdown.complete
+Bonjour</div>
+      <p>A startup that returns <code>Failed(message)</code> ends the boot: no shutdown follows, and the message is what the server reports.</p>
+
+      <h2 id="middleware">Middleware</h2>
+      <p>A middleware wraps an application, and <code>stack</code> folds a list of them from the last to the first. The layer given first sees the request first and the response last.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let app : @moonasgi.AsgiApp = async fn(_, receive, send) {
+  ignore(receive())
+  send(HttpResponseStart(status=200, headers=[("content-type", "text/plain")], trailers=false))
+  send(HttpResponseBody(body=Bytes::make(4096, b'a'), more_body=false))
+}
+let scope = @spec.HttpScope::new(
+  http_method="GET",
+  path="/",
+  headers=[("host", "example.com"), ("accept-encoding", "gzip")],
+)
+let hits = Ref(0)
+let counted = @mid.Wrap(inner => {
+  async fn(scope, receive, send) {
+    hits.val = hits.val + 1
+    inner(scope, receive, send)
+  }
+})
+let stacked = @mid.stack(
+  [
+    @mid.server_errors,
+    @mid.TrustedHosts::new(hosts=["example.com"]),
+    @mid.Cors::new(origins=["https://app.example.com"], methods=["GET", "PUT"]),
+    @mid.gzip,
+    counted,
+  ],
+  app,
+)
+let answer : Array[@spec.Event] = []
+stacked(
+  Http(scope),
+  async fn() { HttpRequest(body=b"", more_body=false) },
+  async fn(event) { answer.push(event) },
+)
+println("layers ran \{hits.val} times")</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>layers ran 1 times</div>
+      <p>Seven ship with the package: <code>server_errors</code>, <code>trusted_hosts</code>, <code>cors</code>, <code>gzip</code>, <code>https_redirect</code>, <code>proxy_headers</code>, <code>body_limit</code>. Each is a record, so a preset can be adjusted in place: <code>{ ..@mid.gzip, level: 1 }</code>.</p>
+
+      <h2 id="dispatch">Several applications behind one</h2>
+      <p>One server can carry an API, an MCP endpoint and a site at the same time. <code>mount</code> picks by path prefix and hands the chosen application the path below it; <code>hosts</code> picks by the <code>Host</code> header.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let app_of = fn(name : String) -> @moonasgi.AsgiApp {
+  async fn(_, receive, send) {
+    ignore(receive())
+    send(HttpResponseStart(status=200, headers=[("x-app", name)], trailers=false))
+    send(HttpResponseBody(body=@utf8.encode(name), more_body=false))
+  }
+}
+let app = @dispatch.mount([
+  ("/api", app_of("api")),
+  ("/mcp", app_of("mcp")),
+])
+let by_host = @dispatch.hosts(
+  [("docs.example.com", app_of("docs"))],
+  fallback=app,
+)</code></pre>
+      </div>
+      <p>The mounted application sees <code>path</code> below its prefix and <code>root_path</code> with the prefix added. A path nothing takes is answered <code>404</code>, or a declined handshake on a WebSocket. The lifespan reaches every application: startup in order, shutdown in reverse, and a failed startup fails them all.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Request</th><th>Reaches</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET /api/items</code></td><td><code>api_app</code>, with <code>path=/items</code></td><td>200</td></tr>
+            <tr><td><code>GET /mcp</code></td><td><code>mcp_app</code>, with <code>path=/</code></td><td>200</td></tr>
+            <tr><td><code>GET /nowhere</code></td><td>nothing</td><td>404</td></tr>
+            <tr><td><code>GET /</code> with <code>host: docs.example.com</code></td><td><code>docs_app</code></td><td>200</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="wsgi">Synchronous applications</h2>
+      <p>An application written the old way takes a mapping of CGI variables, calls <code>start_response</code>, then yields the body. It runs on the same events as everything else.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let legacy : @wsgi.WsgiApp = (environ, start_response) => {
+  ignore(start_response("200 OK", [("Content-Type", "text/plain")]))
+  [@utf8.encode("hello from "), @utf8.encode(environ.path_info)].iter()
+}
+let app : @moonasgi.AsgiApp = @wsgi.to_asgi(legacy)</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">served one GET /legacy/greet</span>200 · 17 B · hello from /greet</div>
+      <p>Each chunk is sent as it is yielded, so a long body still streams. A WebSocket is declined, and the lifespan is answered.</p>
+
+      <h2 id="testing">Testing an application</h2>
+      <p>An application written directly on <code>AsgiApp</code> is tested with <code>testing</code>. It runs the application for real, around its lifespan, and an error it raises reaches the test. Here is one application, in all three shapes, and the test that drives it.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let app : @moonasgi.AsgiApp = async fn(scope, receive, send) {
+  match scope {
+    Http(hs) => {
+      ignore(receive())
+      let (status, body) = if hs.path == "/items" { (201, b"created") } else { (404, b"no") }
+      send(HttpResponseStart(status~, headers=[], trailers=false))
+      send(HttpResponseBody(body~, more_body=false))
+    }
+    WebSocket(_) => {
+      ignore(receive())
+      send(WebSocketAccept(subprotocol=None, headers=[]))
+      guard receive() is WebSocketReceive(text~, ..) else { return }
+      send(WebSocketSendText(text.unwrap_or("")))
+      send(WebSocketClose(code=1000, reason=""))
+    }
+    Lifespan(_) => {
+      ignore(receive())
+      send(LifespanStartupComplete)
+      ignore(receive())
+      send(LifespanShutdownComplete)
+    }
+  }
+}
+let client = @testing.Client::new(app)
+client.lifespan(() => {
+  let created = client.post("/items", body=b"{}")
+  println("POST /items -> \{created.status}")
+  client.websocket(path="/chat", ws => {
+    ws.send_text("hi")
+    println("echo -> " + ws.receive_text())
+  })
+})</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>POST /items -&gt; 201
+echo -&gt; hi</div>
+      <p>To watch one exchange event by event, <code>communicate</code> hands you the application's inbox and outbox.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>@testing.communicate(
+  app,
+  @moonasgi.HttpScope::new(http_method="POST", path="/items") |> Http,
+  c => {
+    c.send(HttpRequest(body=b"", more_body=false))
+    for _ in 0..&lt;2 {
+      println(match c.receive() {
+        HttpResponseStart(status~, ..) => "http.response.start \{status}"
+        HttpResponseBody(body~, ..) => "http.response.body \{body.length()} B"
+        _ => "other"
+      })
+    }
+  },
+)</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>http.response.start 201
+http.response.body 7 B</div>
+
+      <h2 id="honest">Keeping it honest</h2>
+      <p>A server can check what an application emits before writing any of it to a socket. <code>validate_events</code> walks a stream and names the first violation.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let scope = @moonasgi.Scope::Http(
+  @moonasgi.HttpScope::new(http_method="GET", path="/"),
+)
+let wrong = [@spec.HttpResponseBody(body=b"x", more_body=false)]
+println(@moonasgi.validate_events(scope, wrong).unwrap().describe())</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>response body before http.response.start</div>
+      <p>The seam also checks itself: <code>run_conformance()</code> drives every event, every scope field and every ordering rule through the cores.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let report = @moonasgi.run_conformance()
+println("\{report.passed}/\{report.total} checks passed")</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>436/436 checks passed</div>
+
+      <h2 id="http2">HTTP/2 request lines</h2>
+      <p>On a multiplexed transport the request line arrives as pseudo-headers, mixed in with the ordinary fields. Lowering them is part of the seam, so an application never sees a colon-prefixed header.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let lowered = @moonasgi.HttpScope::from_h2_headers([
+  (":method", "POST"),
+  (":scheme", "https"),
+  (":authority", "example.test"),
+  (":path", "/items?page=2"),
+  ("content-type", "application/json"),
+])
+match lowered {
+  Ok(scope) => {
+    println("\{scope.http_method} \{scope.path}")
+    println(@moonasgi.latin1_decode(scope.query_string))
+    println(scope.headers.iter().map(h => "\{h.0}: \{h.1}").join(", "))
+  }
+  Err(UnknownPseudoHeader(name)) => println("unknown " + name)
+  Err(_) => println("malformed request line")
+}</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>POST /items
+page=2
+host: example.test, content-type: application/json</div>
+      <p>A malformed set is refused with the first thing wrong with it: a missing required header, a duplicate, an unknown name, or a pseudo-header after an ordinary one.</p>
+
+      <nav class="prevnext">
+        <a class="prev" href="index.html"><span class="dir">Previous</span><span class="what">Overview</span></a>
+        <a class="next" href="api.html"><span class="dir">Next</span><span class="what">API reference</span></a>
+      </nav>
+    </article>
+
+    <footer class="site-foot">
+      <span>moonasgi · Apache-2.0</span>
+      <a href="https://github.com/moonbitstack/moonasgi">GitHub</a>
+      <a href="https://asgi.readthedocs.io/">ASGI 3.0</a>
+      <a href="https://mooncakes.io/docs/moonbitstack/moonasgi">mooncakes</a>
+      <span class="spacer">Outputs printed, not imagined.</span>
+    </footer>
+  </main>
+
+  <aside class="toc" id="toc"></aside>
+</div>
+
+<div class="search-dialog" id="search" hidden>
+  <div class="search-panel" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="search-field">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <input id="search-input" type="search" placeholder="Search types, functions, sections" autocomplete="off" spellcheck="false">
+    </div>
+    <ul class="search-list" id="search-results"></ul>
+  </div>
+</div>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>

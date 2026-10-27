@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-/// Cross-origin resource sharing, as Starlette's `CORSMiddleware` does it (Fetch standard §3.2).
+/// Cross-origin resource sharing, per the Fetch standard §3.2.
 ///
 /// `origins`, `methods` and `headers` are allow-lists, and `"*"` in one allows anything. A
 /// preflight is answered here: 200 with the negotiated headers, or 400 naming what was refused.
@@ -24,7 +24,7 @@ pub extend Cors with Eq::{equal, not_equal}
 pub extend Cors with Debug::{to_repr}
 
 ///|
-/// Starlette's defaults: no origin, `GET` only, the safelisted headers only, no credentials,
+/// The defaults: no origin allowed, `GET` only, the safelisted headers only, no credentials,
 /// preflights cached for ten minutes.
 pub let cors : Cors = {
   origins: [],
@@ -59,8 +59,8 @@ let all_methods : Array[String] = [
 ]
 
 ///|
-/// Dictionary order. `String`'s own order puts shorter strings first, and the header list is
-/// meant to read as Starlette writes it, sorted by name.
+/// Dictionary order. `String`'s own order puts shorter strings first, and the header list
+/// reads better sorted by name.
 fn lexical(a : String, b : String) -> Int32 {
   let n = @cmp.minimum(a.length(), b.length())
   for i in 0..<n {

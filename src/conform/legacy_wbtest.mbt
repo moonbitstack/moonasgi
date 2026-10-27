@@ -77,7 +77,7 @@ test "run_legacy carries a websocket app too" {
 /// The public async surface type-checks: both a single-callable app and a legacy
 /// double-callable app normalize through `@spec.guarantee_single_callable` /
 /// `@spec.double_to_single_callable` to an `@spec.AsgiApp` a server can drive. (The async result
-/// runs under mooncat; here the constructors and the normaliser are exercised.)
+/// runs under a server; here the constructors and the normaliser are exercised.)
 test "the legacy compatibility wrappers normalize both conventions" {
   let single_app : @spec.AsgiApp = @http.to_asgi(fn(_req) {
     @http.Response::text("ok")

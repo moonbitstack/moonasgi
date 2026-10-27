@@ -1,10 +1,10 @@
 ///|
-/// How long `receive` and `wait` wait by default, in milliseconds: asgiref's one second.
+/// How long `receive` and `wait` wait by default, in milliseconds: one second.
 pub let timeout : Int32 = 1000
 
 ///|
 /// How long `receive_nothing` listens before it concludes nothing is coming, in milliseconds:
-/// asgiref's 100 ms.
+/// 100 ms.
 pub let quiet : Int32 = 100
 
 ///|
@@ -31,7 +31,7 @@ pub(all) suberror Refused {
 pub extend Refused with Eq::{not_equal, equal}
 
 ///|
-/// A running application under test, as asgiref's `ApplicationCommunicator`: events go in with
+/// A running application under test: events go in with
 /// `send`, come out with `receive`, and `wait` waits for the application to return. An error the
 /// application raises comes out of the next `send`, `receive` or `wait`, after the events it sent
 /// before failing. Made by `communicate`, which owns the application's task.
@@ -46,7 +46,7 @@ pub struct Communicator {
 ///|
 /// Start `app` on `scope`, hand `body` a `Communicator` to talk to it, and return what `body`
 /// returns. The application runs as a task of its own and is cancelled if it is still running
-/// when `body` returns, as asgiref cancels an application its test is done with.
+/// when `body` returns, since the test is done with it.
 ///
 /// `timeout` is the default wait of `receive` and `wait`; each call can override it.
 pub async fn[X] communicate(
@@ -102,7 +102,7 @@ async fn Communicator::ready(self : Communicator, limit : Int32) -> Bool {
 }
 
 ///|
-/// Hand `event` to the application's `receive` (asgiref's `send_input`). Raises the
+/// Hand `event` to the application's `receive`. Raises the
 /// application's error if it has already failed.
 pub async fn Communicator::send(
   self : Communicator,
@@ -115,7 +115,7 @@ pub async fn Communicator::send(
 }
 
 ///|
-/// The next event the application sent (asgiref's `receive_output`). Raises `Timeout` if none
+/// The next event the application sent. Raises `Timeout` if none
 /// arrives within `timeout` milliseconds, `Finished` once the application has returned and
 /// everything it sent has been taken, and the application's own error if it failed.
 pub async fn Communicator::receive(
@@ -132,8 +132,8 @@ pub async fn Communicator::receive(
 }
 
 ///|
-/// Whether the application stays silent for `timeout` milliseconds (asgiref's
-/// `receive_nothing`). An event that does arrive is left for the next `receive`. An application
+/// Whether the application stays silent for `timeout` milliseconds. An event that does arrive
+/// is left for the next `receive`. An application
 /// that returned is silent; one that failed raises its error.
 pub async fn Communicator::receive_nothing(
   self : Communicator,

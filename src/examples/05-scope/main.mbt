@@ -41,7 +41,7 @@ fn main {
       path="/greet",
       root_path="/api",
       client=("203.0.113.7", 52333),
-      server=("mooncat", Some(8080)),
+      server=("testserver", Some(8080)),
       state=Map([("greeting", Json("Bonjour"))]),
     ),
   )

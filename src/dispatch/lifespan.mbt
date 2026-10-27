@@ -1,9 +1,8 @@
 ///|
-/// Run the lifespan of every application in `apps` as one (← the lifespan a
-/// mounted Starlette app never gets on its own). Startup reaches them in order
-/// and stops at the first that fails, which fails the whole startup with its
-/// message; shutdown reaches them in reverse, so what started last stops
-/// first, and reports the first failure after every application has been told.
+/// Run the lifespan of every application in `apps` as one. Startup reaches them
+/// in order and stops at the first that fails, which fails the whole startup with
+/// its message; shutdown reaches them in reverse, so what started last stops
+/// first, and the first failure is reported once every application has been told.
 ///
 /// An application that returns or raises instead of answering does not take
 /// part in the lifespan, as the spec has a server treat it; the others go on.
