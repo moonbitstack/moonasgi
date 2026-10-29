@@ -1262,3 +1262,12 @@ tbody tr:hover { background: color-mix(in oklab, var(--note-1) 22%, transparent)
 }
 
 html, button, input, textarea, select { font-variant-ligatures: no-contextual; }
+
+/* The page scroll bar shows while the page moves or under the pointer and
+   hides a moment after; it keeps its place, so nothing shifts. */
+@supports selector(::-webkit-scrollbar) {
+  html:not(.scrolling)::-webkit-scrollbar-thumb { background: transparent; border-color: transparent; box-shadow: none; }
+}
+@supports not selector(::-webkit-scrollbar) {
+  html:not(.scrolling) { scrollbar-color: transparent transparent; }
+}
