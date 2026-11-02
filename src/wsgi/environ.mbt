@@ -46,8 +46,8 @@ pub fn Environ::of(scope : @spec.HttpScope, body : Bytes) -> Environ {
           match host.rev_find(":") {
             Some(k) if !host.has_suffix("]") =>
               (
-                host.view(end_offset=k).to_owned(),
-                host.view(start_offset=k + 1).to_owned(),
+                host.exact_view(end=k).to_owned(),
+                host.exact_view(start=k + 1).to_owned(),
               )
             _ => (host, default_port)
           }

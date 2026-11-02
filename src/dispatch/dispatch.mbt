@@ -112,7 +112,7 @@ fn pick(
 
 ///|
 fn below(path : String, prefix : String) -> String {
-  let rest = path.view(start_offset=prefix.length()).to_owned()
+  let rest = path.exact_view(start=prefix.length()).to_owned()
   if rest == "" {
     "/"
   } else {
@@ -147,12 +147,12 @@ fn host_of(headers : Array[(String, String)]) -> String {
   let host = value.trim(chars=" ").to_lower()
   if host.has_prefix("[") {
     match host.find("]") {
-      Some(end) => host.view(end_offset=end + 1).to_owned()
+      Some(end) => host.exact_view(end=end + 1).to_owned()
       None => host.to_owned()
     }
   } else {
     match host.rev_find(":") {
-      Some(k) => host.view(end_offset=k).to_owned()
+      Some(k) => host.exact_view(end=k).to_owned()
       None => host.to_owned()
     }
   }
@@ -161,7 +161,7 @@ fn host_of(headers : Array[(String, String)]) -> String {
 ///|
 fn host_matches(pattern : String, host : String) -> Bool {
   if pattern.has_prefix("*.") {
-    let suffix = pattern.view(start_offset=1)
+    let suffix = pattern.exact_view(start=1)
     host.length() > suffix.length() && host.has_suffix(suffix)
   } else {
     pattern == host

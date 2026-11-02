@@ -116,7 +116,7 @@ async fn serve(
 /// The status code at the start of a status line; `500` for one that has none.
 fn code_of(status : String) -> Int32 {
   let digits = match status.find(" ") {
-    Some(k) => status.view(end_offset=k)
+    Some(k) => status.exact_view(end=k)
     None => status[:]
   }
   @string.parse_int(digits) catch {

@@ -52,8 +52,8 @@ fn ProxyHeaders::forwarded(
     let fields : Map[String, String] = Map([])
     for pair in element.split(";") {
       if pair.find("=") is Some(k) {
-        let key = pair.view(end_offset=k).trim(chars=" ").to_lower()
-        let value = pair.view(start_offset=k + 1).trim(chars=" \"").to_owned()
+        let key = pair.exact_view(end=k).trim(chars=" ").to_lower()
+        let value = pair.exact_view(start=k + 1).trim(chars=" \"").to_owned()
         fields[key.to_owned()] = value
       }
     }
@@ -106,13 +106,13 @@ fn list(headers : Array[(String, String)], name : String) -> Array[String] {
 fn address(node : String) -> String {
   if node.has_prefix("[") {
     match node.find("]") {
-      Some(end) => node.view(start_offset=1, end_offset=end).to_owned()
+      Some(end) => node.exact_view(start=1, end~).to_owned()
       None => node
     }
   } else {
     match node.find(":") {
       Some(k) if node.rev_find(":") == Some(k) =>
-        node.view(end_offset=k).to_owned()
+        node.exact_view(end=k).to_owned()
       _ => node
     }
   }
