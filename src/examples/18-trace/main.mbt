@@ -104,7 +104,7 @@ fn Driver::receive(self : Driver) -> @spec.Receive {
     self.at = self.at + 1
     self.rec.add(
       "in",
-      event_title(event),
+      event.kind(),
       event_body(event),
       "the application pulls the next event in",
     )
@@ -120,42 +120,10 @@ fn Driver::send(self : Driver) -> @spec.Send {
     self.out.push(event)
     self.rec.add(
       "out",
-      event_title(event),
+      event.kind(),
       event_body(event),
       "the application pushes it back to the server",
     )
-  }
-}
-
-///|
-fn event_title(event : @spec.Event) -> String {
-  match event {
-    HttpRequest(_) => "http.request"
-    HttpDisconnect => "http.disconnect"
-    HttpResponseStart(_) => "http.response.start"
-    HttpResponseBody(_) => "http.response.body"
-    HttpResponseTrailers(_) => "http.response.trailers"
-    HttpResponsePush(_) => "http.response.push"
-    HttpResponsePathSend(_) => "http.response.pathsend"
-    HttpResponseZeroCopySend(_) => "http.response.zerocopysend"
-    HttpResponseDebug(_) => "http.response.debug"
-    HttpResponseEarlyHint(_) => "http.response.early_hint"
-    WebSocketConnect => "websocket.connect"
-    WebSocketReceive(_) => "websocket.receive"
-    WebSocketDisconnect(_) => "websocket.disconnect"
-    WebSocketAccept(_) => "websocket.accept"
-    WebSocketSendText(_) => "websocket.send"
-    WebSocketSendBytes(_) => "websocket.send"
-    WebSocketClose(_) => "websocket.close"
-    WebSocketHttpResponseStart(_) => "websocket.http.response.start"
-    WebSocketHttpResponseBody(_) => "websocket.http.response.body"
-    LifespanStartup => "lifespan.startup"
-    LifespanShutdown => "lifespan.shutdown"
-    LifespanStartupComplete => "lifespan.startup.complete"
-    LifespanStartupFailed(_) => "lifespan.startup.failed"
-    LifespanShutdownComplete => "lifespan.shutdown.complete"
-    LifespanShutdownFailed(_) => "lifespan.shutdown.failed"
-    Other(type_~, ..) => type_
   }
 }
 
@@ -301,7 +269,7 @@ fn streaming() -> Json {
     in_flight.out.push(event)
     in_flight.rec.add(
       "out",
-      event_title(event),
+      event.kind(),
       event_body(event),
       "lowered from the streaming response, in wire order",
     )
@@ -388,7 +356,7 @@ async fn layers() -> Json {
       @async.pause()
       rec.add(
         "out",
-        event_title(event),
+        event.kind(),
         event_body(event),
         "the stack let it through after the layers had their turn",
       )
@@ -564,7 +532,7 @@ fn socket() -> Json {
   for event in inbound {
     rec.add(
       "in",
-      event_title(event),
+      event.kind(),
       event_body(event),
       "one event per thing the client did",
     )
@@ -612,7 +580,7 @@ fn socket() -> Json {
   for event in @moonasgi.ws_run(handler, WebSocket(scope), inbound) {
     rec.add(
       "out",
-      event_title(event),
+      event.kind(),
       event_body(event),
       "the WebSocket core lowers what the handler returned",
     )
