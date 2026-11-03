@@ -122,18 +122,24 @@ fn below(path : String, prefix : String) -> String {
 
 ///|
 /// `raw` without the prefix, when it starts with the prefix's bytes; a raw path
-/// that spells the prefix differently (percent-encoded) is left whole.
-fn strip_raw(raw : Bytes, prefix : String) -> Bytes {
+/// that spells the prefix differently (percent-encoded) is left whole. A scope
+/// that carried no raw path keeps carrying none: `path` below the prefix is the
+/// only target this dispatcher can vouch for.
+fn strip_raw(raw : Bytes?, prefix : String) -> Bytes? {
+  let raw = match raw {
+    Some(raw) => raw
+    None => return None
+  }
   let p = @utf8.encode(prefix)
   if raw.length() >= p.length() && raw[:p.length()] == p[:] {
     let rest = raw[p.length():].to_owned()
     if rest.length() == 0 {
-      b"/"
+      Some(b"/")
     } else {
-      rest
+      Some(rest)
     }
   } else {
-    raw
+    Some(raw)
   }
 }
 

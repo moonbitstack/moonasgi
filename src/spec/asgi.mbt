@@ -219,8 +219,10 @@ pub fn Extensions::with_tls(
 
 ///|
 /// HTTP connection scope (ASGI `type == "http"`). `raw_path` / `query_string`
-/// stay `Bytes` because they are not guaranteed valid UTF-8; header names follow
-/// ASGI's lowercased-latin1 convention. `asgi` carries the version handshake,
+/// stay `Bytes` because they are not guaranteed valid UTF-8 — and `raw_path` is
+/// optional, because the specification lets a server leave it out; a framework
+/// that needs the undecoded target reads it, and falls back to encoding `path`.
+/// Header names follow ASGI's lowercased-latin1 convention. `asgi` carries the version handshake,
 /// `extensions` the advertised server capabilities, and `state` is
 /// per-connection scratch copied from the lifespan state.
 pub(all) struct HttpScope {
@@ -228,7 +230,7 @@ pub(all) struct HttpScope {
   http_method : String
   scheme : String
   path : String
-  raw_path : Bytes
+  raw_path : Bytes?
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
@@ -242,9 +244,10 @@ pub(all) struct HttpScope {
 ///|
 /// Build an `HttpScope` with ASGI's usual defaults filled in — `http_version`
 /// `"1.1"`, `scheme` `"http"`, empty query/headers/state, the default `asgi`
-/// handshake, and no extensions. `raw_path` defaults to the UTF-8 encoding of
-/// `path`. The ergonomic constructor servers and the `TestClient` build scopes
-/// through, so callers spell only what differs from the common case.
+/// handshake, and no extensions. `raw_path` is left `None` — the specification's
+/// own default, since a server that did not keep the undecoded target has
+/// nothing to report. The ergonomic constructor servers and the `TestClient`
+/// build scopes through, so callers spell only what differs from the common case.
 pub fn HttpScope::new(
   http_method~ : String,
   path~ : String,
@@ -265,7 +268,7 @@ pub fn HttpScope::new(
     http_method,
     scheme,
     path,
-    raw_path: raw_path.unwrap_or(@utf8.encode(path)),
+    raw_path,
     query_string,
     root_path,
     headers,
@@ -285,7 +288,7 @@ pub(all) struct WebSocketScope {
   http_version : String
   scheme : String
   path : String
-  raw_path : Bytes
+  raw_path : Bytes?
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
@@ -300,8 +303,8 @@ pub(all) struct WebSocketScope {
 ///|
 /// Build a `WebSocketScope` with ASGI's usual defaults filled in — `scheme`
 /// `"ws"`, empty query/headers/subprotocols/state, the default `asgi`
-/// handshake, and no extensions. `raw_path` defaults to the UTF-8 encoding of
-/// `path`.
+/// handshake, and no extensions. `raw_path` is left `None` unless the handshake
+/// request's target was kept.
 pub fn WebSocketScope::new(
   path~ : String,
   http_version~ : String = "1.1",
@@ -321,7 +324,7 @@ pub fn WebSocketScope::new(
     http_version,
     scheme,
     path,
-    raw_path: raw_path.unwrap_or(@utf8.encode(path)),
+    raw_path,
     query_string,
     root_path,
     headers,

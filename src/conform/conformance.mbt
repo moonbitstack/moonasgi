@@ -164,7 +164,7 @@ pub fn run_conformance() -> ConformanceReport {
     hs.path == "/deep" &&
     hs.http_version == "2" &&
     hs.scheme == "https" &&
-    hs.raw_path == b"/deep" &&
+    hs.raw_path == Some(b"/deep") &&
     hs.query_string == b"k=v" &&
     hs.root_path == "/api" &&
     hs.headers == [("host", "h")] &&
@@ -669,7 +669,7 @@ pub fn run_conformance() -> ConformanceReport {
         s.scheme == "https" &&
         s.http_version == "2" &&
         s.path == "/items" &&
-        s.raw_path == b"/items" &&
+        s.raw_path == Some(b"/items") &&
         s.query_string == b"page=2&q=x" &&
         s.asgi.spec_version == "2.5" &&
         // :authority becomes the leading host header; pseudo-headers are gone.

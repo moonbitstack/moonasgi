@@ -118,3 +118,61 @@ async test "lifespan: one failed startup fails them all, with its message" {
   })
   assert_eq(log, ["a up"])
 }
+
+///|
+/// One call down to the application, with a single empty request body.
+async fn call(app : @spec.AsgiApp, scope : @spec.Scope) -> Unit {
+  let sent : Array[@spec.Event] = []
+  app(
+    scope,
+    async fn() {
+      @async.pause()
+      HttpRequest(body=b"", more_body=false)
+    },
+    async fn(event) {
+      @async.pause()
+      sent.push(event)
+    },
+  )
+}
+
+///|
+/// The undecoded target a server kept is rewritten with the mount point removed,
+/// and one it did not keep stays absent rather than being invented from `path`.
+async test "mount: raw_path follows the prefix, or stays absent" {
+  let seen : Array[String] = []
+  let app : @spec.AsgiApp = (scope, _receive, send) => {
+    match scope {
+      Http(hs) => {
+        let raw = match hs.raw_path {
+          Some(raw) => @utf8.decode_lossy(raw[:])
+          None => "(none)"
+        }
+        seen.push(raw + "|" + hs.path)
+        send(HttpResponseStart(status=200, headers=[], trailers=false))
+        send(HttpResponseBody(body=b"", more_body=false))
+      }
+      _ => ()
+    }
+  }
+  let mounted = @dispatch.mount([("/api", app)])
+  ignore(
+    call(
+      mounted,
+      @spec.Http(
+        @spec.HttpScope::new(
+          http_method="GET",
+          path="/api/items",
+          raw_path=b"/api/%69tems",
+        ),
+      ),
+    ),
+  )
+  ignore(
+    call(
+      mounted,
+      @spec.Http(@spec.HttpScope::new(http_method="GET", path="/api/items")),
+    ),
+  )
+  assert_eq(seen, ["/%69tems|/items", "(none)|/items"])
+}
