@@ -1,27 +1,40 @@
-// Middleware at the application level, framework-neutral: anything that produces an ASGI
-// application wraps it in these, as Starlette's middleware wraps any ASGI app.
-// https://www.starlette.io/middleware/
+// Middleware at the application level, framework-neutral: anything that produces
+// an ASGI application wraps it in these, as Starlette's middleware wraps any
+// ASGI app. https://www.starlette.io/middleware/
 //
-// The code uses only the language's async function types; the tests drive the applications with
-// moonbitlang/async, which has an event loop on the native, wasm and js backends.
+// The code uses only the language's async function types; the tests drive the
+// applications with moonbitlang/async, which has an event loop on the native,
+// wasm and js backends.
 import {
   "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/cookie",
+  "moonbitstack/moonbase/base64",
+  "moonbitstack/mooncrypt/hash/sha1",
+  "moonbitstack/mooncrypt/mac/hmac",
+  "moonbitstack/moonregex",
   "moonbitstack/moonzip/gzip",
-  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/cmp",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
   "moonbitlang/core/string",
 }
 
 import {
   "moonbitstack/moonasgi/mid",
   "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonasgi/cookie",
   "moonbitstack/moonzip/gzip",
   "moonbitlang/async",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
 } for "test"
 
 warnings = "-29"
 
 options(
-  targets: { "mid_test.mbt": [ "native", "wasm", "js" ] },
+  targets: {
+    "mid_test.mbt": [ "native", "wasm", "js" ],
+    "session_test.mbt": [ "native", "wasm", "js" ],
+  },
 )

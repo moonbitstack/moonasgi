@@ -36,5 +36,7 @@ description = "ASGI 3.0 for MoonBit: the interface between servers and framework
 import {
   "moonbitstack/moonzip@0.3.2",
   "moonbitlang/async@0.22.5",
+  "moonbitstack/moonbase@0.4.2",
+  "moonbitstack/mooncrypt@0.4.8",
   "moonbitstack/moondate@0.1.2",
 }
