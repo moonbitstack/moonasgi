@@ -257,7 +257,7 @@ The pseudo-headers are consumed into the typed fields, `host` is synthesised fro
 | `…/lifespan` | `LifespanHandler` and `run_lifespan` |
 | `…/client` | `TestClient` for handlers and WebSocket sessions |
 | `…/cookie` | Request cookie pairs, `Set-Cookie` lines, and a jar |
-| `…/mid` | The middleware stack and the seven above |
+| `…/mid` | The middleware stack and the nine above |
 | `…/dispatch` | `mount`, `hosts` and a shared lifespan |
 | `…/wsgi` | A synchronous application on the same events |
 | `…/testing` | A real `AsgiApp` driven in-process, event by event |
