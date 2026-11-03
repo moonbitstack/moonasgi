@@ -315,7 +315,54 @@ stacked(
 println("layers ran \{hits.val} times")</code></pre>
       </div>
       <div class="out-block"><span class="out-label">output</span>layers ran 1 times</div>
-      <p>Seven ship with the package: <code>server_errors</code>, <code>trusted_hosts</code>, <code>cors</code>, <code>gzip</code>, <code>https_redirect</code>, <code>proxy_headers</code>, <code>body_limit</code>. Each is a record, so a preset can be adjusted in place: <code>{ ..@mid.gzip, level: 1 }</code>.</p>
+      <p>Nine ship with the package: <code>server_errors</code>, <code>trusted_hosts</code>, <code>cors</code>, <code>gzip</code>, <code>https_redirect</code>, <code>proxy_headers</code>, <code>body_limit</code>, <code>sessions</code>, <code>auth</code>. Each is a record, so a preset can be adjusted in place: <code>{ ..@mid.gzip, level: 1 }</code>. <code>cors</code> takes an <code>origin_regex</code> as well as a list, for a site whose origins cannot be listed.</p>
+
+      <h2 id="session">Sessions and identity</h2>
+      <p>A session that lives in the cookie needs no store on the server: the data travels with the client, signed, and the request that carries it gets it back. <code>session</code> is the map a handler reads and writes — the same map the layer writes back into the answer.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let sessions : @mid.Sessions = @mid.Sessions::new(
+  secret=@utf8.encode("a secret only the server knows"),
+  clock=fn() { 1_700_000_000L },
+)
+let app : @moonasgi.AsgiApp = async fn(scope, receive, send) {
+  ignore(receive())
+  match scope {
+    Http(hs) if hs.path == "/login" &amp;&amp; hs.http_method == "POST" =&gt; {
+      @mid.session(scope)["user"] = Json::string("ada")
+      send(HttpResponseStart(status=303, headers=[("location", "/me")], trailers=false))
+    }
+    Http(_) =&gt; {
+      let who = match @mid.user(scope) {
+        Some(Object(fields)) =&gt; match fields.get("name") { Some(String(name)) =&gt; name; _ =&gt; "nobody" }
+        _ =&gt; "nobody"
+      }
+      send(HttpResponseStart(status=200, headers=[], trailers=false))
+      send(HttpResponseBody(body=@utf8.encode("you are " + who), more_body=false))
+      return
+    }
+    _ =&gt; return
+  }
+  send(HttpResponseBody(body=b"", more_body=false))
+}
+let from_session : &amp;@mid.Backend = @mid.BackendFn(fn(scope) {
+  match @mid.session(scope).get("user") {
+    Some(name) =&gt; @mid.Identity::of(Json::object(Map([("name", name)])))
+    None =&gt; @mid.Identity::anonymous()
+  }
+})
+let service = sessions.wrap(@mid.Auth::new(from_session).wrap(app))
+let client = @testing.Client::new(service, follow_redirects=true, clock=fn() { 1_700_000_000L })
+println("before logging in:     " + client.get("/me").text())
+println("after logging in:      " + client.post("/login").text())
+println("the jar holds:         " + client.cookies().map(fn(p) { p.0 }).join(", "))</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>before logging in:     you are nobody
+after logging in:      you are ada
+the jar holds:         session</div>
+      <p>The answer to the login carries <code>Set-Cookie: session=…; Path=/; Max-Age=1209600; HttpOnly; SameSite=lax</code>, and the next request carries it back. The signature is the timestamped HMAC form Python's services already use, so a cookie written on either side is readable on the other; a cookie edited by the client, or one older than <code>max_age</code>, reads as no session at all. Emptying the session answers with a cookie that expired at the epoch, and the client drops it.</p>
+      <p>Identity is a separate step, so one backend answers it for every route. <code>Auth</code> puts what the backend returned on the scope under <code>user</code> and <code>auth</code> — holding <code>null</code> when nobody was identified, which is how a handler tells that apart from a service with no auth layer at all. The session layer goes outside the auth layer, since the backend reads what it wrote.</p>
+      <p>The whole flow is <code>src/examples/19-session</code>; the test client keeps the cookies for you, and <code>client.cookies()</code> shows what it holds.</p>
 
       <h2 id="dispatch">Several applications behind one</h2>
       <p>One server can carry an API, an MCP endpoint and a site at the same time. <code>mount</code> picks by path prefix and hands the chosen application the path below it; <code>hosts</code> picks by the <code>Host</code> header.</p>
@@ -402,6 +449,7 @@ client.lifespan(() => {
       </div>
       <div class="out-block"><span class="out-label">output</span>POST /items -&gt; 201
 echo -&gt; hi</div>
+      <p>The client keeps a cookie jar: whatever a response set is sent with the next request to that host and path, and <code>follow_redirects</code> — off by default, so a test that asserts on a <code>302</code> still sees it — walks a redirect chain, turning a <code>303</code> into a <code>GET</code> as a browser does. A <code>secure</code> cookie is held back unless the client was built with <code>scheme="https"</code>.</p>
       <p>To watch one exchange event by event, <code>communicate</code> hands you the application's inbox and outbox.</p>
       <div class="code">
         <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>

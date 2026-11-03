@@ -128,7 +128,7 @@ Startup seeds `scope.state` in place. A server copies that map onto every reques
 
 ## Middleware
 
-`mid` wraps any application, whatever built it. Seven ship with the package:
+`mid` wraps any application, whatever built it. Nine ship with the package:
 
 | Middleware | What it does | Default |
 |:--|:--|:--|
@@ -139,6 +139,8 @@ Startup seeds `scope.state` in place. A server copies that map onto every reques
 | `proxy_headers` | Restores the client and scheme from a trusted proxy | trusts `127.0.0.1` |
 | `body_limit` | Answers 413 over the limit, by length or as it streams | 1 MiB |
 | `server_errors` | A 500 when the answer has not started, then the error on | no detail |
+| `sessions` | Signs the session into a cookie, and reads it back | 14 days, `SameSite=Lax` |
+| `auth` | Resolves an identity once per connection, onto the scope | no backend |
 
 ```moonbit
 let app : @moonasgi.AsgiApp = async fn(_, receive, send) {
@@ -159,6 +161,44 @@ let stacked = @mid.stack(
 ```
 
 Each is a record, so a preset can be adjusted in place — `{ ..@mid.gzip, level: 1 }` says the same as `Gzip::new(level=1)`. Your own middleware is a `Wrap`, or a record implementing `Layer`, and stacks with the rest.
+
+### Sessions and identity
+
+A session lives in the cookie, signed with a secret, so a server keeps nothing:
+a restart loses no session, and a second server behind the same secret already
+knows every one of them. `session` is the map a handler reads and writes.
+
+```moonbit
+let sessions : @mid.Sessions = @mid.Sessions::new(secret=@utf8.encode("a secret only the server knows"))
+
+let login : @moonasgi.AsgiApp = async fn(scope, receive, send) {
+  ignore(receive())
+  @mid.session(scope)["user"] = Json::string("ada")
+  send(HttpResponseStart(status=303, headers=[("location", "/me")], trailers=false))
+  send(HttpResponseBody(body=b"", more_body=false))
+}
+```
+
+The signature is the timestamped HMAC form Python's services already use, so a
+cookie either side wrote the other can read. An emptied session answers with a
+cookie that has already expired, and a cookie that does not verify is no session
+at all.
+
+Identity is a separate step, and a backend answers it:
+
+```moonbit
+let backend : &@mid.Backend = @mid.BackendFn(fn(scope) {
+  match @mid.session(scope).get("user") {
+    Some(name) => @mid.Identity::of(Json::object(Map([("name", name)])))
+    None => @mid.Identity::anonymous()
+  }
+})
+let app = sessions.wrap(@mid.Auth::new(backend).wrap(handler))
+```
+
+`user` and `auth` then sit in `scope.state` for every handler below, holding
+`null` when nobody was identified. Put the session layer outside the auth layer:
+the backend sees what it wrote.
 
 ## Several applications behind one
 
@@ -216,18 +256,21 @@ The pseudo-headers are consumed into the typed fields, `host` is synthesised fro
 | `…/ws` | `WebSocketHandler`, `WsAccept`, `WsMessage`, `ws_run` |
 | `…/lifespan` | `LifespanHandler` and `run_lifespan` |
 | `…/client` | `TestClient` for handlers and WebSocket sessions |
+| `…/cookie` | Request cookie pairs, `Set-Cookie` lines, and a jar |
 | `…/mid` | The middleware stack and the seven above |
 | `…/dispatch` | `mount`, `hosts` and a shared lifespan |
 | `…/wsgi` | A synchronous application on the same events |
 | `…/testing` | A real `AsgiApp` driven in-process, event by event |
 | `…/conform` | The conformance harness and the ordering rules |
 
-The seam itself has no dependencies. `mid` uses a compression package; `testing` and `dispatch` use an async runtime for their event loop.
+The seam itself has no dependencies. `mid` uses a compression package, a regular
+expression engine and a hash; `testing` and `dispatch` use an async runtime for
+their event loop.
 
 ## Examples
 
 <details>
-<summary><b>Nineteen programs, one per feature</b></summary>
+<summary><b>Twenty programs, one per feature</b></summary>
 
 Each is a runnable package under [`src/examples`](src/examples):
 
@@ -256,6 +299,7 @@ moon run src/examples/00-hello
 | 16 | [`dispatch`](src/examples/16-dispatch) | Three applications behind one |
 | 17 | [`wsgi`](src/examples/17-wsgi) | A synchronous application, mounted |
 | 18 | [`trace`](src/examples/18-trace) | Every event of a request, in order |
+| 19 | [`session`](src/examples/19-session) | A session in a signed cookie, and an identity read from it |
 
 </details>
 

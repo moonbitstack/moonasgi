@@ -117,14 +117,14 @@ pub type Middleware = (Handler) -&gt; Handler</code></pre>
           <p><code>run_http</code>, <code>run_http_stream</code>, <code>run_http_scoped</code>, <code>ws_run</code>, <code>run_lifespan</code>. No socket, no event loop.</p>
         </div>
         <div class="note tint-2">
-          <span class="num">7</span>
+          <span class="num">9</span>
           <span class="cap">middleware</span>
-          <p>CORS, gzip, trusted hosts, HTTPS redirect, proxy headers, body limit, server errors.</p>
+          <p>CORS, gzip, trusted hosts, HTTPS redirect, proxy headers, body limit, server errors, sessions, auth.</p>
         </div>
       </div>
 
       <h2 id="pieces">The pieces</h2>
-      <p>Eleven packages, but you import one. Each is a slice of the same seam, and none of them carries a transport.</p>
+      <p>Twelve packages, but you import one. Each is a slice of the same seam, and none of them carries a transport.</p>
 
       <div class="notes">
         <div class="note tint-3">
@@ -146,6 +146,10 @@ pub type Middleware = (Handler) -&gt; Handler</code></pre>
         <div class="note tint-2">
           <h3>One server, many applications</h3>
           <p><code>dispatch</code> picks by path prefix or host name, and runs one lifespan across all of them.</p>
+        </div>
+        <div class="note tint-3">
+          <h3>Who is asking</h3>
+          <p><code>mid</code> keeps a session in a signed cookie and resolves an identity once per connection. <code>cookie</code> is the codec and the jar underneath.</p>
         </div>
         <div class="note tint-3">
           <h3>Applications from before</h3>
