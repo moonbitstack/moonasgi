@@ -8,8 +8,14 @@
 /// preflight is answered here: 200 with the negotiated headers, or 400 naming what was refused.
 /// Other cross-origin responses get `access-control-allow-origin` when the origin is allowed.
 /// With `credentials` the origin is echoed rather than `*`, as the standard requires.
+///
+/// `origin_regex` is for a site that cannot list its origins: a staging host per
+/// branch, a tenant per customer. It is matched whole against the `Origin` header,
+/// after the list, so a listed origin is answered without the expression being
+/// compiled.
 pub(all) struct Cors {
   origins : Array[String]
+  origin_regex : String?
   methods : Array[String]
   headers : Array[String]
   credentials : Bool
@@ -28,6 +34,7 @@ pub extend Cors with Debug::{to_repr}
 /// preflights cached for ten minutes.
 pub let cors : Cors = {
   origins: [],
+  origin_regex: None,
   methods: ["GET"],
   headers: [],
   credentials: false,
@@ -38,13 +45,14 @@ pub let cors : Cors = {
 ///|
 pub fn Cors::new(
   origins~ : Array[String] = cors.origins,
+  origin_regex? : String,
   methods~ : Array[String] = cors.methods,
   headers~ : Array[String] = cors.headers,
   credentials~ : Bool = cors.credentials,
   expose~ : Array[String] = cors.expose,
   max_age~ : Int32 = cors.max_age,
 ) -> Cors {
-  { origins, methods, headers, credentials, expose, max_age, }
+  { origins, origin_regex, methods, headers, credentials, expose, max_age, }
 }
 
 ///|
@@ -77,8 +85,21 @@ fn Cors::any_origin(self : Cors) -> Bool {
 }
 
 ///|
-fn Cors::allows_origin(self : Cors, origin : String) -> Bool {
-  self.any_origin() || self.origins.contains(origin)
+/// Whether `origin` is allowed, given the expression the layer compiled when it
+/// was built. A pattern that does not compile matches nothing: a broken pattern
+/// closes the door rather than opening it.
+fn Cors::allows_origin(
+  self : Cors,
+  origin : String,
+  pattern : @moonregex.Pattern?,
+) -> Bool {
+  if self.any_origin() || self.origins.contains(origin) {
+    return true
+  }
+  match pattern {
+    Some(pattern) => matches(pattern, origin)
+    None => false
+  }
 }
 
 ///|
@@ -96,6 +117,7 @@ fn Cors::preflight(
   origin : String,
   requested : String,
   asked : String?,
+  pattern : @moonregex.Pattern?,
 ) -> (Int32, Array[(String, String)], String) {
   let explicit = !self.any_origin() || self.credentials
   let allowed_headers = {
@@ -125,7 +147,7 @@ fn Cors::preflight(
     out.push(("access-control-allow-credentials", "true"))
   }
   let refused : Array[String] = []
-  if self.allows_origin(origin) {
+  if self.allows_origin(origin, pattern) {
     if explicit {
       out.push(("access-control-allow-origin", origin))
     }
@@ -164,6 +186,7 @@ fn Cors::simple(
   headers : Array[(String, String)],
   origin : String,
   cookie : Bool,
+  pattern : @moonregex.Pattern?,
 ) -> Array[(String, String)] {
   let mut out = headers
   if self.any_origin() {
@@ -178,7 +201,7 @@ fn Cors::simple(
   // A request with a cookie must not be answered with `*`; one from a listed origin is
   // answered with that origin.
   if (self.any_origin() && cookie) ||
-    (!self.any_origin() && self.allows_origin(origin)) {
+    (!self.any_origin() && self.allows_origin(origin, pattern)) {
     out = vary(put(out, "access-control-allow-origin", origin), "Origin")
   }
   out
@@ -186,6 +209,11 @@ fn Cors::simple(
 
 ///|
 pub impl Layer for Cors with fn wrap(self, app) {
+  // Compiled once, when the stack is built, rather than on every request.
+  let pattern = match self.origin_regex {
+    Some(text) => compile(text)
+    None => None
+  }
   (scope, receive, send) => {
     guard scope is Http(h) && header(h.headers, "origin") is Some(origin) else {
       app(scope, receive, send)
@@ -197,6 +225,7 @@ pub impl Layer for Cors with fn wrap(self, app) {
         origin,
         requested,
         header(h.headers, "access-control-request-headers"),
+        pattern,
       )
       respond(send, status, headers, body)
       return
@@ -208,7 +237,7 @@ pub impl Layer for Cors with fn wrap(self, app) {
           send(
             HttpResponseStart(
               status~,
-              headers=self.simple(headers, origin, cookie),
+              headers=self.simple(headers, origin, cookie, pattern),
               trailers~,
             ),
           )
@@ -220,3 +249,28 @@ pub impl Layer for Cors with fn wrap(self, app) {
 
 ///|
 pub extend Cors with Layer::{wrap}
+
+///|
+/// Whether the whole of `origin` matches the expression: an origin is one value,
+/// not a prefix of one, so `https://a.example` must not answer for
+/// `https://a.example.evil`.
+fn matches(pattern : @moonregex.Pattern, origin : String) -> Bool {
+  let found = try pattern.full(origin) catch {
+    _ => return false
+  } noraise {
+    matched => matched
+  }
+  found is Some(_)
+}
+
+///|
+/// An origin expression, compiled in the dialect of the Python `re` module its
+/// users write these in — that is where the patterns come from, and a Python
+/// expression that means one thing must mean the same thing here.
+fn compile(text : String) -> @moonregex.Pattern? {
+  try @moonregex.compile(text, dialect=@moonregex.python) catch {
+    _ => None
+  } noraise {
+    pattern => Some(pattern)
+  }
+}

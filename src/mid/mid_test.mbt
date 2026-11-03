@@ -552,3 +552,102 @@ async test "body limit: a streamed body over the limit is cut off with a 413" {
   ])
   assert_eq(body_text(fits), "10")
 }
+
+///|
+async test "cors: an origin matching the expression is echoed, another is not" {
+  let app = @mid.Cors::new(origin_regex="https://[a-z]+\\.example\\.com").wrap(
+    hello,
+  )
+  let (_, allowed) = start(
+    drive(app, http("GET", "/", [("origin", "https://app.example.com")])),
+  )
+  assert_eq(
+    value(allowed, "access-control-allow-origin"),
+    Some("https://app.example.com"),
+  )
+  assert_eq(value(allowed, "vary"), Some("Origin"))
+  let (_, refused) = start(
+    drive(app, http("GET", "/", [("origin", "https://app.example.org")])),
+  )
+  assert_eq(value(refused, "access-control-allow-origin"), None)
+}
+
+///|
+async test "cors: the expression must match the whole origin" {
+  let app = @mid.Cors::new(origin_regex="https://a\\.example").wrap(hello)
+  // A suffix on an allowed name is another origin, and a prefix is one too.
+  let (_, longer) = start(
+    drive(app, http("GET", "/", [("origin", "https://a.example.evil")])),
+  )
+  assert_eq(value(longer, "access-control-allow-origin"), None)
+  let (_, prefixed) = start(
+    drive(app, http("GET", "/", [("origin", "https://x-a.example")])),
+  )
+  assert_eq(value(prefixed, "access-control-allow-origin"), None)
+  let (_, exact) = start(
+    drive(app, http("GET", "/", [("origin", "https://a.example")])),
+  )
+  assert_eq(
+    value(exact, "access-control-allow-origin"),
+    Some("https://a.example"),
+  )
+}
+
+///|
+async test "cors: a preflight from a matching origin is answered" {
+  let app = @mid.Cors::new(origin_regex="https://.*\\.example\\.com", methods=[
+    "GET", "PUT",
+  ]).wrap(hello)
+  let (status, headers) = start(
+    drive(
+      app,
+      http("OPTIONS", "/", [
+        ("origin", "https://app.example.com"),
+        ("access-control-request-method", "PUT"),
+      ]),
+    ),
+  )
+  assert_eq(status, 200)
+  assert_eq(
+    value(headers, "access-control-allow-origin"),
+    Some("https://app.example.com"),
+  )
+  assert_eq(value(headers, "access-control-allow-methods"), Some("GET, PUT"))
+}
+
+///|
+async test "cors: a listed origin needs no expression, and a broken one allows nothing" {
+  let listed = @mid.Cors::new(
+    origins=["https://app.example.com"],
+    origin_regex="https://[a-z+\\.example\\.com",
+  ).wrap(hello)
+  let (_, allowed) = start(
+    drive(listed, http("GET", "/", [("origin", "https://app.example.com")])),
+  )
+  assert_eq(
+    value(allowed, "access-control-allow-origin"),
+    Some("https://app.example.com"),
+  )
+  // The expression does not compile — an unclosed class — so it matches nothing
+  // rather than everything: a broken pattern closes the door.
+  let (_, refused) = start(
+    drive(listed, http("GET", "/", [("origin", "https://other.example.com")])),
+  )
+  assert_eq(value(refused, "access-control-allow-origin"), None)
+}
+
+///|
+async test "cors: a matching origin with credentials is echoed" {
+  let app = @mid.Cors::new(
+    origin_regex="https://.*\\.example\\.com",
+    credentials=true,
+  ).wrap(hello)
+  let (_, headers) = start(
+    drive(app, http("GET", "/", [("origin", "https://app.example.com")])),
+  )
+  assert_eq(
+    value(headers, "access-control-allow-origin"),
+    Some("https://app.example.com"),
+  )
+  assert_eq(value(headers, "access-control-allow-credentials"), Some("true"))
+}
