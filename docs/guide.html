@@ -409,6 +409,7 @@ let app : @moonasgi.AsgiApp = @wsgi.to_asgi(legacy)</code></pre>
       </div>
       <div class="out-block"><span class="out-label">served one GET /legacy/greet</span>200 · 17 B · hello from /greet</div>
       <p>Each chunk is sent as it is yielded, so a long body still streams. A WebSocket is declined, and the lifespan is answered.</p>
+      <p>The other direction, <code>to_wsgi</code>, carries its signature and refuses: an asynchronous application needs an event loop that can be entered while it is already running, and the runtime has none yet.</p>
 
       <h2 id="testing">Testing an application</h2>
       <p>An application written directly on <code>AsgiApp</code> is tested with <code>testing</code>. It runs the application for real, around its lifespan, and an error it raises reaches the test. Here is one application, in all three shapes, and the test that drives it.</p>
