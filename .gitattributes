@@ -1,3 +1,4 @@
-* text=auto
-docs/** text eol=lf
-scripts/** text eol=lf
+* text=auto eol=lf
+*.mbt text eol=lf
+*.mbti text eol=lf
+*.py text eol=lf
