@@ -1,0 +1,11 @@
+// Cookies, RFC 6265: https://www.rfc-editor.org/rfc/rfc6265
+//
+// Two things a layer above the seam needs and neither the scope nor the
+// response carries: the pairs a request sent in its `Cookie` header, and a
+// `Set-Cookie` line with its attributes. The session middleware reads and
+// writes the first, the in-process client stores and replays both. Neither
+// package can depend on the other, so the codec lives on its own.
+
+import {
+  "moonbitstack/moondate",
+}

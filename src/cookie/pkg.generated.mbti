@@ -1,0 +1,62 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitstack/moonasgi/cookie"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn find(String, String) -> String?
+
+pub fn parse(String) -> Array[(String, String)]
+
+// Errors
+pub(all) suberror Refused {
+  Refused(String)
+} derive(Eq, @debug.Debug)
+pub fn Refused::equal(Self, Self) -> Bool
+pub fn Refused::not_equal(Self, Self) -> Bool
+pub fn Refused::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct Entry {
+  name : String
+  value : String
+  domain : String
+  host_only : Bool
+  path : String
+  expires : Int64?
+  secure : Bool
+}
+
+pub struct Jar {
+  entries : Array[Entry]
+}
+pub fn Jar::clear(Self) -> Unit
+pub fn Jar::get(Self, String, host~ : String, path~ : String, now~ : Int64, secure? : Bool) -> String?
+pub fn Jar::header(Self, host~ : String, path~ : String, now~ : Int64, secure? : Bool) -> String?
+pub fn Jar::length(Self) -> Int32
+pub fn Jar::new() -> Self
+pub fn Jar::pairs(Self, host~ : String, path~ : String, now~ : Int64, secure? : Bool) -> Array[(String, String)]
+pub fn Jar::set(Self, name~ : String, value~ : String, host~ : String, domain? : String, path? : String, expires? : Int64, secure? : Bool) -> Unit
+pub fn Jar::store(Self, SetCookie, host~ : String, now~ : Int64, default_path? : String) -> Unit
+
+pub(all) struct SetCookie {
+  name : String
+  value : String
+  path : String?
+  domain : String?
+  max_age : Int32?
+  expires : Int64?
+  secure : Bool
+  http_only : Bool
+  same_site : String?
+}
+pub fn SetCookie::encode(Self) -> String
+pub fn SetCookie::expired(Self, now~ : Int64) -> Bool
+pub fn SetCookie::new(name~ : String, value~ : String, path? : String, domain? : String, max_age? : Int32, expires? : Int64, secure? : Bool, http_only? : Bool, same_site? : String) -> Self
+pub fn SetCookie::parse(String) -> Self raise Refused
+
+// Type aliases
+
+// Traits
