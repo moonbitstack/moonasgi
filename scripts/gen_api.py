@@ -30,6 +30,9 @@ PACKAGES = [
     ("moonbitstack/moonasgi/client", "src/client",
      "`TestClient`: drive a handler or a WebSocket session in-process and read back the "
      "reassembled answer."),
+    ("moonbitstack/moonasgi/cookie", "src/cookie",
+     "Cookies on the wire: a request's pairs, a `Set-Cookie` line with its attributes, and a "
+     "jar that files each cookie under the host and path it belongs to."),
     ("moonbitstack/moonasgi/mid", "src/mid",
      "Application-level middleware, each one a record implementing `Layer`, stackable in "
      "any order."),

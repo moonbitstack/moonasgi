@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub fn auth(@spec.Scope) -> Json?
+
 pub let body_limit : BodyLimit
 
 pub let cors : Cors
@@ -19,13 +21,28 @@ pub let proxy_headers : ProxyHeaders
 
 pub let server_errors : ServerErrors
 
+pub fn session(@spec.Scope) -> Map[String, Json]
+
 pub fn stack(Array[&Layer], async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 
 pub let trusted_hosts : TrustedHosts
 
+pub fn user(@spec.Scope) -> Json?
+
 // Errors
 
 // Types and methods
+pub(all) struct Auth {
+  backend : &Backend
+}
+pub fn Auth::new(&Backend) -> Self
+pub fn Auth::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for Auth
+
+pub(all) struct BackendFn((@spec.Scope) -> Identity)
+pub fn BackendFn::authenticate(Self, @spec.Scope) -> Identity
+pub impl Backend for BackendFn
+
 pub(all) struct BodyLimit {
   limit : Int32
 } derive(Eq, @debug.Debug)
@@ -38,6 +55,7 @@ pub impl Layer for BodyLimit
 
 pub(all) struct Cors {
   origins : Array[String]
+  origin_regex : String?
   methods : Array[String]
   headers : Array[String]
   credentials : Bool
@@ -45,7 +63,7 @@ pub(all) struct Cors {
   max_age : Int32
 } derive(Eq, @debug.Debug)
 pub fn Cors::equal(Self, Self) -> Bool
-pub fn Cors::new(origins? : Array[String], methods? : Array[String], headers? : Array[String], credentials? : Bool, expose? : Array[String], max_age? : Int32) -> Self
+pub fn Cors::new(origins? : Array[String], origin_regex? : String, methods? : Array[String], headers? : Array[String], credentials? : Bool, expose? : Array[String], max_age? : Int32) -> Self
 pub fn Cors::not_equal(Self, Self) -> Bool
 pub fn Cors::to_repr(Self) -> @debug.Repr
 pub fn Cors::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
@@ -71,6 +89,16 @@ pub fn HttpsRedirect::to_repr(Self) -> @debug.Repr
 pub fn HttpsRedirect::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for HttpsRedirect
 
+pub(all) struct Identity {
+  user : Json?
+  auth : Json?
+} derive(Eq, @debug.Debug)
+pub fn Identity::anonymous() -> Self
+pub fn Identity::equal(Self, Self) -> Bool
+pub fn Identity::not_equal(Self, Self) -> Bool
+pub fn Identity::of(Json) -> Self
+pub fn Identity::to_repr(Self) -> @debug.Repr
+
 pub(all) struct ProxyHeaders {
   trusted : Array[String]
 } derive(Eq, @debug.Debug)
@@ -88,6 +116,20 @@ pub(all) struct ServerErrors {
 pub fn ServerErrors::new(debug? : Bool, handler? : (Error) -> (Int32, Array[(String, String)], String)) -> Self
 pub fn ServerErrors::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for ServerErrors
+
+pub(all) struct Sessions {
+  secret : Bytes
+  cookie : String
+  max_age : Int32?
+  path : String
+  same_site : String
+  https_only : Bool
+  domain : String?
+  clock : () -> Int64
+}
+pub fn Sessions::new(secret~ : Bytes, cookie? : String, max_age? : Int32?, path? : String, same_site? : String, https_only? : Bool, domain? : String, clock? : () -> Int64) -> Self
+pub fn Sessions::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for Sessions
 
 pub(all) struct TrustedHosts {
   hosts : Array[String]
@@ -107,6 +149,10 @@ pub impl Layer for Wrap
 // Type aliases
 
 // Traits
+pub(open) trait Backend {
+  fn authenticate(Self, @spec.Scope) -> Identity
+}
+
 pub(open) trait Layer {
   fn wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 }

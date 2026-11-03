@@ -48,7 +48,9 @@ pub fn AsgiVersion::equal(Self, Self) -> Bool
 pub fn AsgiVersion::http() -> Self
 pub fn AsgiVersion::lifespan() -> Self
 pub fn AsgiVersion::not_equal(Self, Self) -> Bool
+pub fn AsgiVersion::to_json(Self) -> Json
 pub fn AsgiVersion::websocket() -> Self
+pub impl ToJson for AsgiVersion
 
 pub(all) enum Event {
   HttpRequest(body~ : Bytes, more_body~ : Bool)
@@ -79,8 +81,11 @@ pub(all) enum Event {
   Other(type_~ : String, payload~ : Json)
 } derive(Eq, @debug.Debug)
 pub fn Event::equal(Self, Self) -> Bool
+pub fn Event::kind(Self) -> String
 pub fn Event::not_equal(Self, Self) -> Bool
+pub fn Event::to_json(Self) -> Json
 pub fn Event::to_repr(Self) -> @debug.Repr
+pub impl ToJson for Event
 
 pub(all) struct Extensions {
   tls : TlsExtension?
@@ -105,7 +110,9 @@ pub fn Extensions::equal(Self, Self) -> Bool
 pub fn Extensions::get(Self, String) -> Json?
 pub fn Extensions::none() -> Self
 pub fn Extensions::not_equal(Self, Self) -> Bool
+pub fn Extensions::to_json(Self) -> Json
 pub fn Extensions::with_tls(Self, TlsExtension) -> Self
+pub impl ToJson for Extensions
 
 pub(all) enum Http2HeaderError {
   MissingMethod
@@ -124,7 +131,7 @@ pub(all) struct HttpScope {
   http_method : String
   scheme : String
   path : String
-  raw_path : Bytes
+  raw_path : Bytes?
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
@@ -136,18 +143,24 @@ pub(all) struct HttpScope {
 }
 pub fn HttpScope::from_h2_headers(Array[(String, String)], http_version? : String, root_path? : String, client? : (String, Int32), server? : (String, Int32?), extensions? : Extensions, asgi? : AsgiVersion, state? : Map[String, Json]) -> Result[Self, Http2HeaderError]
 pub fn HttpScope::new(http_method~ : String, path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int32), server? : (String, Int32?), asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, Json]) -> Self
+pub fn HttpScope::to_json(Self) -> Json
+pub impl ToJson for HttpScope
 
 pub(all) struct LifespanScope {
   asgi : AsgiVersion
   state : Map[String, Json]
 }
 pub fn LifespanScope::new(asgi? : AsgiVersion, state? : Map[String, Json]) -> Self
+pub fn LifespanScope::to_json(Self) -> Json
+pub impl ToJson for LifespanScope
 
 pub(all) enum Scope {
   Http(HttpScope)
   WebSocket(WebSocketScope)
   Lifespan(LifespanScope)
 }
+pub fn Scope::to_json(Self) -> Json
+pub impl ToJson for Scope
 
 pub(all) struct TlsExtension {
   server_cert : String?
@@ -159,12 +172,14 @@ pub(all) struct TlsExtension {
 } derive(Eq)
 pub fn TlsExtension::equal(Self, Self) -> Bool
 pub fn TlsExtension::not_equal(Self, Self) -> Bool
+pub fn TlsExtension::to_json(Self) -> Json
+pub impl ToJson for TlsExtension
 
 pub(all) struct WebSocketScope {
   http_version : String
   scheme : String
   path : String
-  raw_path : Bytes
+  raw_path : Bytes?
   query_string : Bytes
   root_path : String
   headers : Array[(String, String)]
@@ -177,6 +192,8 @@ pub(all) struct WebSocketScope {
 }
 pub fn WebSocketScope::new(path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int32), server? : (String, Int32?), subprotocols? : Array[String], asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, Json]) -> Self
 pub fn WebSocketScope::select_subprotocol(Self, Array[String]) -> String?
+pub fn WebSocketScope::to_json(Self) -> Json
+pub impl ToJson for WebSocketScope
 
 // Type aliases
 pub type AsgiApp = async (Scope, async () -> Event, async (Event) -> Unit) -> Unit

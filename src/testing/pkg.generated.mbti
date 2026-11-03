@@ -3,6 +3,7 @@ package "moonbitstack/moonasgi/testing"
 
 import {
   "moonbitstack/moonasgi/client",
+  "moonbitstack/moonasgi/cookie",
   "moonbitstack/moonasgi/spec",
   "moonbitstack/moonasgi/ws",
 }
@@ -37,12 +38,19 @@ pub(all) struct Client {
   extensions : @spec.Extensions
   state : Map[String, Json]
   timeout : Int32
+  scheme : String
+  jar : @cookie.Jar
+  follow_redirects : Bool
+  max_redirects : Int32
+  clock : () -> Int64
 }
+pub fn Client::cookie(Self, String, path? : String) -> String?
+pub fn Client::cookies(Self, path? : String) -> Array[(String, String)]
 pub async fn Client::delete(Self, String, headers? : Array[(String, String)]) -> @client.TestResponse
 pub async fn Client::get(Self, String, headers? : Array[(String, String)]) -> @client.TestResponse
 pub async fn Client::head(Self, String, headers? : Array[(String, String)]) -> @client.TestResponse
 pub async fn[X] Client::lifespan(Self, async () -> X) -> X
-pub fn Client::new(async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit, root_path? : String, base_headers? : Array[(String, String)], client? : (String, Int32)?, server? : (String, Int32?)?, extensions? : @spec.Extensions, state? : Map[String, Json], timeout? : Int32) -> Self
+pub fn Client::new(async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit, root_path? : String, base_headers? : Array[(String, String)], client? : (String, Int32)?, server? : (String, Int32?)?, extensions? : @spec.Extensions, state? : Map[String, Json], timeout? : Int32, scheme? : String, jar? : @cookie.Jar, follow_redirects? : Bool, max_redirects? : Int32, clock? : () -> Int64) -> Self
 pub async fn Client::patch(Self, String, body? : Bytes, headers? : Array[(String, String)]) -> @client.TestResponse
 pub async fn Client::post(Self, String, body? : Bytes, headers? : Array[(String, String)]) -> @client.TestResponse
 pub async fn Client::put(Self, String, body? : Bytes, headers? : Array[(String, String)]) -> @client.TestResponse
