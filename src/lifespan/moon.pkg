@@ -1,6 +1,6 @@
-// 生命周期作用域：启动与关闭事件。
+// The lifespan seam: the startup and shutdown events, and the core that runs them.
 //
-// 规范：https://asgi.readthedocs.io/en/latest/specs/lifespan.html
+// https://asgi.readthedocs.io/en/latest/specs/lifespan.html
 import {
   "moonbitstack/moonasgi/spec",
 }

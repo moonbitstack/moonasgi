@@ -1,6 +1,7 @@
-// 一致性套件：给任何 ASGI 实现跑的合规检查，与消息顺序的校验。
+// The conformance suite: the checks any ASGI implementation can be run against,
+// and the message-ordering rules as code.
 //
-// 规范：https://asgi.readthedocs.io/en/latest/specs/main.html
+// https://asgi.readthedocs.io/en/latest/specs/main.html
 import {
   "moonbitstack/moonasgi/spec",
   "moonbitstack/moonasgi/http",

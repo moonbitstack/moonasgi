@@ -1,7 +1,7 @@
-// WebSocket 作用域的接缝：握手、接受、发送与关闭码。帧的编解码不在这里，
-// 在 moonhttp/ws。
+// The WebSocket seam: the handshake, accept, send and close codes. Frame
+// encoding is not here; a server's own WebSocket codec does that.
 //
-// 规范：https://asgi.readthedocs.io/en/latest/specs/www.html#websocket
+// https://asgi.readthedocs.io/en/latest/specs/www.html#websocket
 import {
   "moonbitstack/moonasgi/spec",
 }

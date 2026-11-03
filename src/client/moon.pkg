@@ -1,6 +1,8 @@
-// 测试客户端：不开套接字，直接把请求喂给应用并收回响应。
+// The test client: hand a request to an application and read the answer back,
+// without opening a socket. The synchronous `TestClient` is the same idea for
+// handlers that fold events.
 //
-// 位置相当于 Starlette 的 TestClient。
+// https://asgi.readthedocs.io/en/latest/specs/main.html
 import {
   "moonbitstack/moonasgi/spec",
   "moonbitstack/moonasgi/http",

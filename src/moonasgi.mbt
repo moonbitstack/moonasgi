@@ -1,8 +1,9 @@
 // Copyright 2026 Leo Cheng
 // SPDX-License-Identifier: Apache-2.0
 
-// 门面：把六个子包的公开面原样重导出，`@moonasgi.X` 仍然是原来的 X。
-// 只要其中一件的人直接 import 子包，产物里不会有其余五个。
+// The facade: the public surface of six packages, re-exported as it is, so
+// `@moonasgi.X` is the X of the package it came from. A caller that wants one of
+// them imports that package directly, and the other five stay out of the build.
 
 ///|
 pub using @spec {

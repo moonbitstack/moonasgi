@@ -90,8 +90,8 @@ pub fn TestResponse::json(self : TestResponse) -> Json raise {
 /// records a promise, `HttpResponsePathSend` records the served path, and every
 /// `HttpResponseEarlyHint` records one `103` message's `Link` values. Other
 /// events (websocket, lifespan) are ignored — the http response is what a client
-/// observes.
-/// 把一串事件拼回一个响应，一致性套件与测试客户端共用。
+/// observes. The conformance suite and the test clients share it, so all three
+/// agree on what a response is.
 pub fn reassemble(events : Array[@spec.Event]) -> TestResponse {
   let mut status = 0
   let mut headers : Array[(String, String)] = []

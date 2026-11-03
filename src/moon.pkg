@@ -1,6 +1,8 @@
-// moonasgi 门面包：重导出 spec、http、ws、lifespan、client、conform 六个子包。
+// The facade: re-exports spec, http, ws, lifespan, client and conform, so one
+// import is the whole seam. `mid` and `testing` stay out of it, since they bring
+// a compression package and an event loop with them.
 //
-// ASGI 3.0 规范：https://asgi.readthedocs.io/en/latest/specs/main.html
+// https://asgi.readthedocs.io/en/latest/specs/main.html
 import {
   "moonbitstack/moonasgi/spec",
   "moonbitstack/moonasgi/http",
