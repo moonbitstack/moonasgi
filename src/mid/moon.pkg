@@ -36,5 +36,6 @@ options(
   targets: {
     "mid_test.mbt": [ "native", "wasm", "js" ],
     "session_test.mbt": [ "native", "wasm", "js" ],
+    "auth_test.mbt": [ "native", "wasm", "js" ],
   },
 )
