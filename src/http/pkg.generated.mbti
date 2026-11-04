@@ -3,6 +3,7 @@ package "moonbitstack/moonasgi/http"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "moonbitstack/moonasgi/spec",
 }
 
@@ -24,46 +25,50 @@ pub fn to_asgi((Request) -> Response) -> async (@spec.Scope, async () -> @spec.E
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum Drain {
   Complete
   Disconnected
   Truncated
-} derive(Eq, @debug.Debug)
+}
 pub fn Drain::equal(Self, Self) -> Bool
 pub fn Drain::not_equal(Self, Self) -> Bool
 pub fn Drain::to_repr(Self) -> @debug.Repr
 
+#derive(Eq)
 pub(all) struct Request {
   http_method : String
   path : String
   query_string : Bytes
   headers : Array[(String, String)]
   body : Bytes
-} derive(Eq)
+}
 pub fn Request::equal(Self, Self) -> Bool
 pub fn Request::header(Self, String) -> String?
 pub fn Request::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub(all) struct Response {
   status : Int32
   headers : Array[(String, String)]
   body : Bytes
-} derive(Eq)
+}
 pub fn Response::equal(Self, Self) -> Bool
 pub fn Response::events(Self) -> Array[@spec.Event]
 pub fn Response::header(Self, String) -> String?
-pub fn Response::json(status? : Int32, Json) -> Self
+pub fn Response::json(status? : Int32, @json.Json) -> Self
 pub fn Response::new(Int32, Array[(String, String)], Bytes) -> Self
 pub fn Response::not_equal(Self, Self) -> Bool
 pub fn Response::text(status? : Int32, String) -> Self
 
+#derive(Eq)
 pub(all) struct StreamingResponse {
   status : Int32
   headers : Array[(String, String)]
   chunks : Array[Bytes]
   trailers : Array[(String, String)]
   early_hints : Array[Array[String]]
-} derive(Eq)
+}
 pub fn StreamingResponse::equal(Self, Self) -> Bool
 pub fn StreamingResponse::events(Self) -> Array[@spec.Event]
 pub fn StreamingResponse::new(chunks~ : Array[Bytes], status? : Int32, headers? : Array[(String, String)], trailers? : Array[(String, String)], early_hints? : Array[Array[String]]) -> Self

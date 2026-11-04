@@ -4,9 +4,10 @@
 /// application reads it is answered `413` too, when no response has started;
 /// the application then reads a disconnect, and what it sends afterwards is
 /// dropped, since the client already has its answer.
+#derive(Eq, Debug)
 pub(all) struct BodyLimit {
   limit : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend BodyLimit with Eq::{equal, not_equal}

@@ -11,9 +11,10 @@ pub fn find(String, String) -> String?
 pub fn parse(String) -> Array[(String, String)]
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror Refused {
   Refused(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn Refused::equal(Self, Self) -> Bool
 pub fn Refused::not_equal(Self, Self) -> Bool
 pub fn Refused::to_repr(Self) -> @debug.Repr

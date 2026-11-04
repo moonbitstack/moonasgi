@@ -10,9 +10,10 @@
 /// trusted, the leftmost. `X-Forwarded-Proto` gives the scheme, `http` or
 /// `https` (`ws` or `wss` for a WebSocket). Without either header, the
 /// `Forwarded` header is read the same way through its `for` and `proto`.
+#derive(Eq, Debug)
 pub(all) struct ProxyHeaders {
   trusted : Array[String]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ProxyHeaders with Eq::{equal, not_equal}

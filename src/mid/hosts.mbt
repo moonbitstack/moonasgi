@@ -6,10 +6,11 @@
 /// header naming another answers 400. `*.example.com` allows any subdomain, `*` alone allows any
 /// host. With `www_redirect`, a request for `example.com` where only `www.example.com` is listed
 /// is sent there.
+#derive(Eq, Debug)
 pub(all) struct TrustedHosts {
   hosts : Array[String]
   www_redirect : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend TrustedHosts with Eq::{equal, not_equal}
@@ -77,7 +78,8 @@ pub impl Layer for TrustedHosts with fn wrap(self, app) {
 /// Send every plain request to its secure equivalent:
 /// `http` to `https` and `ws` to `wss`, with a 307 so the method and body are kept. Port 80 or 443
 /// in the host is dropped; any other port stays.
-pub(all) struct HttpsRedirect {} derive(Eq, Debug)
+#derive(Eq, Debug)
+pub(all) struct HttpsRedirect {}
 
 ///|
 pub extend HttpsRedirect with Eq::{equal, not_equal}

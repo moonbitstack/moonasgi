@@ -2,23 +2,25 @@
 /// An inbound HTTP request in ergonomic form: the request line, headers, and the
 /// fully-read body. The sugar over `@spec.HttpScope` plus a drained `Receive`, so a
 /// `Handler` never touches the async transport directly.
+#derive(Eq)
 pub(all) struct Request {
   http_method : String
   path : String
   query_string : Bytes
   headers : Array[(String, String)]
   body : Bytes
-} derive(Eq)
+}
 
 ///|
 /// An outbound HTTP response: status, headers, and the full body. Mutable so
 /// middleware can decorate it before the server serialises it into
 /// `HttpResponseStart` + `HttpResponseBody`.
+#derive(Eq)
 pub(all) struct Response {
   status : Int32
   headers : Array[(String, String)]
   body : Bytes
-} derive(Eq)
+}
 
 ///|
 /// A streamed outbound response: the status line, headers, an ordered list of
@@ -29,13 +31,14 @@ pub(all) struct Response {
 /// would send. `early_hints` (the `http.response.early_hint` extension) are the
 /// `103 Early Hints` messages emitted ahead of the final response, each element
 /// a list of `Link` header values.
+#derive(Eq)
 pub(all) struct StreamingResponse {
   status : Int32
   headers : Array[(String, String)]
   chunks : Array[Bytes]
   trailers : Array[(String, String)]
   early_hints : Array[Array[String]]
-} derive(Eq)
+}
 
 ///|
 /// Build a `StreamingResponse`. `status` defaults to `200`, `headers`,
@@ -176,11 +179,12 @@ pub fn Response::json(status~ : Int32 = 200, value : Json) -> Response {
 /// mid-request, or the stream ran out without either. A long-polling or streaming
 /// handler cares about the difference — `Disconnected` means nothing it sends will
 /// arrive, so cleanup is all that is left to do.
+#derive(Eq, Debug)
 pub(all) enum Drain {
   Complete
   Disconnected
   Truncated
-} derive(Eq, Debug)
+}
 
 ///|
 /// Fold one inbound event into the body buffer, returning whether more chunks

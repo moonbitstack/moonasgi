@@ -14,6 +14,7 @@
 /// the exact `Http2HeaderError`, matching RFC 7540's "malformed request"
 /// treatment, so the transport can answer `RST_STREAM(PROTOCOL_ERROR)` instead
 /// of forwarding a bad scope.
+#derive(Eq)
 pub(all) enum Http2HeaderError {
   // No `:method` pseudo-header was present.
   MissingMethod
@@ -32,7 +33,7 @@ pub(all) enum Http2HeaderError {
   // A pseudo-header followed an ordinary header — RFC 7540 requires all
   // pseudo-headers to precede the regular fields.
   PseudoHeaderAfterRegular(String)
-} derive(Eq)
+}
 
 ///|
 /// Percent-decode a request target's path into the characters ASGI's `path` carries,

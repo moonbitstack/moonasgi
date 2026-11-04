@@ -22,27 +22,30 @@ pub(all) struct WebSocketHandler {
 pub fn WebSocketHandler::echo(subprotocol? : String) -> Self
 pub fn WebSocketHandler::new(on_connect? : (@spec.WebSocketScope) -> WsAccept, on_receive? : (WsMessage) -> Array[WsSend], on_disconnect? : (Int32, String?) -> Array[WsSend]) -> Self
 
+#derive(Eq)
 pub(all) enum WsAccept {
   Accept(subprotocol~ : String?, headers~ : Array[(String, String)])
   Reject(code~ : Int32, reason~ : String)
   DenyHttp(status~ : Int32, headers~ : Array[(String, String)], body~ : Bytes)
-} derive(Eq)
+}
 pub fn WsAccept::equal(Self, Self) -> Bool
 pub fn WsAccept::not_equal(Self, Self) -> Bool
 
+#derive(Eq, @debug.Debug)
 pub(all) enum WsMessage {
   Text(String)
   Binary(Bytes)
-} derive(Eq, @debug.Debug)
+}
 pub fn WsMessage::equal(Self, Self) -> Bool
 pub fn WsMessage::not_equal(Self, Self) -> Bool
 pub fn WsMessage::to_repr(Self) -> @debug.Repr
 
+#derive(Eq)
 pub(all) enum WsSend {
   SendText(String)
   SendBinary(Bytes)
   Close(code~ : Int32, reason~ : String)
-} derive(Eq)
+}
 pub fn WsSend::equal(Self, Self) -> Bool
 pub fn WsSend::not_equal(Self, Self) -> Bool
 

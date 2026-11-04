@@ -6,6 +6,7 @@
 /// finds; a well-formed stream returns `None`. A server can run this over its own
 /// emissions to catch a buggy app early, and the conformance harness drives a
 /// negative table through it.
+#derive(Eq)
 pub(all) enum EventOrderError {
   // HTTP response ordering.
   BodyBeforeStart
@@ -38,7 +39,7 @@ pub(all) enum EventOrderError {
   // An event from the wrong message set for this scope (e.g. a websocket frame
   // in an http response stream).
   NonResponseEvent
-} derive(Eq)
+}
 
 ///|
 /// A one-line human description of the violation, used in conformance failure

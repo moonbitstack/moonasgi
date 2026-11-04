@@ -13,6 +13,7 @@
 /// branch, a tenant per customer. It is matched whole against the `Origin` header,
 /// after the list, so a listed origin is answered without the expression being
 /// compiled.
+#derive(Eq, Debug)
 pub(all) struct Cors {
   origins : Array[String]
   origin_regex : String?
@@ -21,7 +22,7 @@ pub(all) struct Cors {
   credentials : Bool
   expose : Array[String]
   max_age : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Cors with Eq::{equal, not_equal}

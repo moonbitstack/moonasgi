@@ -14,10 +14,11 @@
 /// JSON rather than a record because the seam cannot know what a service's user
 /// looks like; a framework that wants a typed user reads it back out of the
 /// scope with `user` and decodes it into its own type.
+#derive(Eq, Debug)
 pub(all) struct Identity {
   user : Json?
   auth : Json?
-} derive(Eq, Debug)
+}
 
 ///|
 /// An identity with nothing in it: the answer for a connection that carried no

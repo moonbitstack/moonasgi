@@ -1,10 +1,11 @@
 ///|
 /// A server-side push promise captured by the `TestClient`: the pushed `path`
 /// and the request headers the server would send for it (`http.response.push`).
+#derive(Eq, Debug)
 pub(all) struct PushPromise {
   path : String
   headers : Array[(String, String)]
-} derive(Eq, Debug)
+}
 
 ///|
 /// First push-request header matching `name`.
@@ -21,11 +22,12 @@ pub fn PushPromise::header(self : PushPromise, name : String) -> String? {
 /// A `http.response.zerocopysend` message captured by the `TestClient`: the open
 /// file descriptor the app handed off, and the optional byte `offset` / `count`.
 /// The sans-transport analog of the server performing the zero-copy send.
+#derive(Eq, Debug)
 pub(all) struct ZeroCopySend {
   fd : Int32
   offset : Int32?
   count : Int32?
-} derive(Eq, Debug)
+}
 
 ///|
 /// The materialised result of driving an application in-process: the response
@@ -35,6 +37,7 @@ pub(all) struct ZeroCopySend {
 /// last `zerocopysend` handoff, every `debug` info payload, and the
 /// `early_hints` (each a `103` message's `Link` values). The captured,
 /// sans-transport analog of what a real client would observe.
+#derive(Eq, Debug)
 pub(all) struct TestResponse {
   status : Int32
   headers : Array[(String, String)]
@@ -45,7 +48,7 @@ pub(all) struct TestResponse {
   zerocopysend : ZeroCopySend?
   debug : Array[Json]
   early_hints : Array[Array[String]]
-} derive(Eq, Debug)
+}
 
 ///|
 /// First response header matching `name` (ASGI lowercased-name convention).
@@ -335,6 +338,7 @@ pub fn TestClient::patch(
 /// what `close_code` / `close_reason`, and — when the handshake was denied with
 /// the `websocket.http.response` extension — the captured HTTP `denial` response.
 /// The WebSocket analog of `TestResponse`.
+#derive(Eq, Debug)
 pub(all) struct WsTestSession {
   accepted : Bool
   subprotocol : String?
@@ -344,7 +348,7 @@ pub(all) struct WsTestSession {
   close_code : Int32?
   close_reason : String?
   denial : TestResponse?
-} derive(Eq, Debug)
+}
 
 ///|
 /// First accept-response header matching `name`.

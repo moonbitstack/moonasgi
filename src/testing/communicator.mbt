@@ -9,6 +9,7 @@ pub let quiet : Int32 = 100
 
 ///|
 /// What a test driver could not get from the application under test.
+#derive(Eq)
 pub(all) suberror Refused {
   /// Nothing arrived within `limit` milliseconds.
   Timeout(limit~ : Int32)
@@ -25,7 +26,7 @@ pub(all) suberror Refused {
   Startup(String)
   /// The application reported `lifespan.shutdown.failed` with this message.
   Shutdown(String)
-} derive(Eq)
+}
 
 ///|
 pub extend Refused with Eq::{not_equal, equal}

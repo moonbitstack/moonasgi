@@ -3,11 +3,12 @@
 /// ran, how many `passed`, and the names of any that `failures`. A clean run has
 /// an empty `failures`. Reusable beyond the test suite — a server or framework
 /// built on the seam can call `run_conformance` to self-verify the wiring.
+#derive(Eq)
 pub(all) struct ConformanceReport {
   total : Int32
   passed : Int32
   failures : Array[String]
-} derive(Eq)
+}
 
 ///|
 /// Whether every conformance check passed (no failures recorded).

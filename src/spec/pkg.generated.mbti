@@ -3,6 +3,7 @@ package "moonbitstack/moonasgi/spec"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -25,9 +26,10 @@ pub fn run_legacy((Scope) -> (Array[Event]) -> Array[Event], Scope, Array[Event]
 pub fn split_target(String) -> (String, String)
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror Closed {
   Closed(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn Closed::equal(Self, Self) -> Bool
 pub fn Closed::not_equal(Self, Self) -> Bool
 pub fn Closed::to_repr(Self) -> @debug.Repr
@@ -38,20 +40,22 @@ pub(all) enum AsgiApplication {
   Legacy((Scope) -> async (async () -> Event, async (Event) -> Unit) -> Unit)
 }
 
+#derive(Eq)
 pub(all) struct AsgiVersion {
   version : String
   spec_version : String
-} derive(Eq)
+}
 pub fn AsgiVersion::at_least(Self, major~ : Int32, minor~ : Int32) -> Bool
 pub fn AsgiVersion::default() -> Self
 pub fn AsgiVersion::equal(Self, Self) -> Bool
 pub fn AsgiVersion::http() -> Self
 pub fn AsgiVersion::lifespan() -> Self
 pub fn AsgiVersion::not_equal(Self, Self) -> Bool
-pub fn AsgiVersion::to_json(Self) -> Json
+pub fn AsgiVersion::to_json(Self) -> @json.Json
 pub fn AsgiVersion::websocket() -> Self
-pub impl ToJson for AsgiVersion
+pub impl @json.ToJson for AsgiVersion
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Event {
   HttpRequest(body~ : Bytes, more_body~ : Bool)
   HttpDisconnect
@@ -61,7 +65,7 @@ pub(all) enum Event {
   HttpResponsePush(path~ : String, headers~ : Array[(String, String)])
   HttpResponsePathSend(path~ : String)
   HttpResponseZeroCopySend(fd~ : Int32, offset~ : Int32?, count~ : Int32?, more_body~ : Bool)
-  HttpResponseDebug(info~ : Json)
+  HttpResponseDebug(info~ : @json.Json)
   HttpResponseEarlyHint(links~ : Array[String])
   WebSocketConnect
   WebSocketReceive(text~ : String?, bytes~ : Bytes?)
@@ -78,15 +82,16 @@ pub(all) enum Event {
   LifespanStartupFailed(message~ : String)
   LifespanShutdownComplete
   LifespanShutdownFailed(message~ : String)
-  Other(type_~ : String, payload~ : Json)
-} derive(Eq, @debug.Debug)
+  Other(type_~ : String, payload~ : @json.Json)
+}
 pub fn Event::equal(Self, Self) -> Bool
 pub fn Event::kind(Self) -> String
 pub fn Event::not_equal(Self, Self) -> Bool
-pub fn Event::to_json(Self) -> Json
+pub fn Event::to_json(Self) -> @json.Json
 pub fn Event::to_repr(Self) -> @debug.Repr
-pub impl ToJson for Event
+pub impl @json.ToJson for Event
 
+#derive(Eq)
 pub(all) struct Extensions {
   tls : TlsExtension?
   http_response_push : Bool
@@ -96,9 +101,9 @@ pub(all) struct Extensions {
   http_response_early_hint : Bool
   http_response_debug : Bool
   websocket_http_response : Bool
-  custom : Map[String, Json]
-} derive(Eq)
-pub fn Extensions::enable(Self, String, value? : Json) -> Self
+  custom : Map[String, @json.Json]
+}
+pub fn Extensions::enable(Self, String, value? : @json.Json) -> Self
 pub fn Extensions::enable_debug(Self) -> Self
 pub fn Extensions::enable_early_hint(Self) -> Self
 pub fn Extensions::enable_pathsend(Self) -> Self
@@ -107,13 +112,14 @@ pub fn Extensions::enable_trailers(Self) -> Self
 pub fn Extensions::enable_websocket_http_response(Self) -> Self
 pub fn Extensions::enable_zerocopysend(Self) -> Self
 pub fn Extensions::equal(Self, Self) -> Bool
-pub fn Extensions::get(Self, String) -> Json?
+pub fn Extensions::get(Self, String) -> @json.Json?
 pub fn Extensions::none() -> Self
 pub fn Extensions::not_equal(Self, Self) -> Bool
-pub fn Extensions::to_json(Self) -> Json
+pub fn Extensions::to_json(Self) -> @json.Json
 pub fn Extensions::with_tls(Self, TlsExtension) -> Self
-pub impl ToJson for Extensions
+pub impl @json.ToJson for Extensions
 
+#derive(Eq)
 pub(all) enum Http2HeaderError {
   MissingMethod
   MissingScheme
@@ -122,7 +128,7 @@ pub(all) enum Http2HeaderError {
   DuplicatePseudoHeader(String)
   UnknownPseudoHeader(String)
   PseudoHeaderAfterRegular(String)
-} derive(Eq)
+}
 pub fn Http2HeaderError::equal(Self, Self) -> Bool
 pub fn Http2HeaderError::not_equal(Self, Self) -> Bool
 
@@ -139,29 +145,30 @@ pub(all) struct HttpScope {
   server : (String, Int32?)?
   asgi : AsgiVersion
   extensions : Extensions
-  state : Map[String, Json]
+  state : Map[String, @json.Json]
 }
-pub fn HttpScope::from_h2_headers(Array[(String, String)], http_version? : String, root_path? : String, client? : (String, Int32), server? : (String, Int32?), extensions? : Extensions, asgi? : AsgiVersion, state? : Map[String, Json]) -> Result[Self, Http2HeaderError]
-pub fn HttpScope::new(http_method~ : String, path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int32), server? : (String, Int32?), asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, Json]) -> Self
-pub fn HttpScope::to_json(Self) -> Json
-pub impl ToJson for HttpScope
+pub fn HttpScope::from_h2_headers(Array[(String, String)], http_version? : String, root_path? : String, client? : (String, Int32), server? : (String, Int32?), extensions? : Extensions, asgi? : AsgiVersion, state? : Map[String, @json.Json]) -> Result[Self, Http2HeaderError]
+pub fn HttpScope::new(http_method~ : String, path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int32), server? : (String, Int32?), asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, @json.Json]) -> Self
+pub fn HttpScope::to_json(Self) -> @json.Json
+pub impl @json.ToJson for HttpScope
 
 pub(all) struct LifespanScope {
   asgi : AsgiVersion
-  state : Map[String, Json]
+  state : Map[String, @json.Json]
 }
-pub fn LifespanScope::new(asgi? : AsgiVersion, state? : Map[String, Json]) -> Self
-pub fn LifespanScope::to_json(Self) -> Json
-pub impl ToJson for LifespanScope
+pub fn LifespanScope::new(asgi? : AsgiVersion, state? : Map[String, @json.Json]) -> Self
+pub fn LifespanScope::to_json(Self) -> @json.Json
+pub impl @json.ToJson for LifespanScope
 
 pub(all) enum Scope {
   Http(HttpScope)
   WebSocket(WebSocketScope)
   Lifespan(LifespanScope)
 }
-pub fn Scope::to_json(Self) -> Json
-pub impl ToJson for Scope
+pub fn Scope::to_json(Self) -> @json.Json
+pub impl @json.ToJson for Scope
 
+#derive(Eq)
 pub(all) struct TlsExtension {
   server_cert : String?
   client_cert_chain : Array[String]
@@ -169,11 +176,11 @@ pub(all) struct TlsExtension {
   client_cert_error : String?
   tls_version : Int32?
   cipher_suite : Int32?
-} derive(Eq)
+}
 pub fn TlsExtension::equal(Self, Self) -> Bool
 pub fn TlsExtension::not_equal(Self, Self) -> Bool
-pub fn TlsExtension::to_json(Self) -> Json
-pub impl ToJson for TlsExtension
+pub fn TlsExtension::to_json(Self) -> @json.Json
+pub impl @json.ToJson for TlsExtension
 
 pub(all) struct WebSocketScope {
   http_version : String
@@ -188,12 +195,12 @@ pub(all) struct WebSocketScope {
   subprotocols : Array[String]
   asgi : AsgiVersion
   extensions : Extensions
-  state : Map[String, Json]
+  state : Map[String, @json.Json]
 }
-pub fn WebSocketScope::new(path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int32), server? : (String, Int32?), subprotocols? : Array[String], asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, Json]) -> Self
+pub fn WebSocketScope::new(path~ : String, http_version? : String, scheme? : String, raw_path? : Bytes, query_string? : Bytes, root_path? : String, headers? : Array[(String, String)], client? : (String, Int32), server? : (String, Int32?), subprotocols? : Array[String], asgi? : AsgiVersion, extensions? : Extensions, state? : Map[String, @json.Json]) -> Self
 pub fn WebSocketScope::select_subprotocol(Self, Array[String]) -> String?
-pub fn WebSocketScope::to_json(Self) -> Json
-pub impl ToJson for WebSocketScope
+pub fn WebSocketScope::to_json(Self) -> @json.Json
+pub impl @json.ToJson for WebSocketScope
 
 // Type aliases
 pub type AsgiApp = async (Scope, async () -> Event, async (Event) -> Unit) -> Unit

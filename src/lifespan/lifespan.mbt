@@ -4,10 +4,11 @@
 /// startup) aborts the boot on. Mirrors the two replies ASGI allows to each
 /// lifespan message — `lifespan.startup.complete` / `.failed` and
 /// `lifespan.shutdown.complete` / `.failed`.
+#derive(Eq)
 pub(all) enum LifespanReply {
   Complete
   Failed(message~ : String)
-} derive(Eq)
+}
 
 ///|
 /// A synchronous lifespan application in the startup / shutdown shape, the

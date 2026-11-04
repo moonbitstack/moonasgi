@@ -9,10 +9,11 @@
 /// A body sent in several messages is passed through as it comes: compressing it would hold it
 /// back until the end, and a stream is sent in pieces so that it is not held back. An event
 /// stream is never compressed, for the same reason.
+#derive(Eq, Debug)
 pub(all) struct Gzip {
   minimum : Int32
   level : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Gzip with Eq::{equal, not_equal}

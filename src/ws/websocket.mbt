@@ -3,10 +3,11 @@
 /// `Binary` frame. The ergonomic form of `WebSocketReceive` / `WebSocketSendText`
 /// / `WebSocketSendBytes`, so a `WebSocketHandler` reasons over messages instead
 /// of raw events.
+#derive(Eq, Debug)
 pub(all) enum WsMessage {
   Text(String)
   Binary(Bytes)
-} derive(Eq, Debug)
+}
 
 ///|
 /// The application's answer to a `WebSocketConnect`, mirroring the three replies
@@ -15,11 +16,12 @@ pub(all) enum WsMessage {
 /// code (ASGI closes the handshake with `websocket.close`), or `DenyHttp` it with
 /// a full HTTP response (the `websocket.http.response` extension — a real status
 /// + headers + body instead of a bare close).
+#derive(Eq)
 pub(all) enum WsAccept {
   Accept(subprotocol~ : String?, headers~ : Array[(String, String)])
   Reject(code~ : Int32, reason~ : String)
   DenyHttp(status~ : Int32, headers~ : Array[(String, String)], body~ : Bytes)
-} derive(Eq)
+}
 
 ///|
 /// An outbound action a `WebSocketHandler` takes while the connection is open:
@@ -27,11 +29,12 @@ pub(all) enum WsAccept {
 /// and reason. A `Close` ends the handler's send stream — the driver stops
 /// pulling further inbound messages, mirroring a server that has closed the
 /// socket.
+#derive(Eq)
 pub(all) enum WsSend {
   SendText(String)
   SendBinary(Bytes)
   Close(code~ : Int32, reason~ : String)
-} derive(Eq)
+}
 
 ///|
 /// A synchronous WebSocket application in the connect / receive / disconnect

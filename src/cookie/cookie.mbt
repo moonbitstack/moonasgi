@@ -2,9 +2,10 @@
 /// A `Set-Cookie` line that could not be read: an empty name, or a name with a
 /// separator in it. The text is left empty for the first and names the attribute
 /// for the others.
+#derive(Eq, Debug)
 pub(all) suberror Refused {
   Refused(String)
-} derive(Eq, Debug)
+}
 
 ///|
 /// One cookie as a server sends it: the pair and the attributes that decide where

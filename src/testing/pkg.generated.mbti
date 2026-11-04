@@ -2,6 +2,7 @@
 package "moonbitstack/moonasgi/testing"
 
 import {
+  "moonbitlang/core/json",
   "moonbitstack/moonasgi/client",
   "moonbitstack/moonasgi/cookie",
   "moonbitstack/moonasgi/spec",
@@ -16,6 +17,7 @@ pub let quiet : Int32
 pub let timeout : Int32
 
 // Errors
+#derive(Eq)
 pub(all) suberror Refused {
   Timeout(limit~ : Int32)
   Finished
@@ -24,7 +26,7 @@ pub(all) suberror Refused {
   Denied(@client.TestResponse)
   Startup(String)
   Shutdown(String)
-} derive(Eq)
+}
 pub fn Refused::equal(Self, Self) -> Bool
 pub fn Refused::not_equal(Self, Self) -> Bool
 
@@ -36,7 +38,7 @@ pub(all) struct Client {
   client : (String, Int32)?
   server : (String, Int32?)?
   extensions : @spec.Extensions
-  state : Map[String, Json]
+  state : Map[String, @json.Json]
   timeout : Int32
   scheme : String
   jar : @cookie.Jar
@@ -50,7 +52,7 @@ pub async fn Client::delete(Self, String, headers? : Array[(String, String)]) ->
 pub async fn Client::get(Self, String, headers? : Array[(String, String)]) -> @client.TestResponse
 pub async fn Client::head(Self, String, headers? : Array[(String, String)]) -> @client.TestResponse
 pub async fn[X] Client::lifespan(Self, async () -> X) -> X
-pub fn Client::new(async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit, root_path? : String, base_headers? : Array[(String, String)], client? : (String, Int32)?, server? : (String, Int32?)?, extensions? : @spec.Extensions, state? : Map[String, Json], timeout? : Int32, scheme? : String, jar? : @cookie.Jar, follow_redirects? : Bool, max_redirects? : Int32, clock? : () -> Int64) -> Self
+pub fn Client::new(async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit, root_path? : String, base_headers? : Array[(String, String)], client? : (String, Int32)?, server? : (String, Int32?)?, extensions? : @spec.Extensions, state? : Map[String, @json.Json], timeout? : Int32, scheme? : String, jar? : @cookie.Jar, follow_redirects? : Bool, max_redirects? : Int32, clock? : () -> Int64) -> Self
 pub async fn Client::patch(Self, String, body? : Bytes, headers? : Array[(String, String)]) -> @client.TestResponse
 pub async fn Client::post(Self, String, body? : Bytes, headers? : Array[(String, String)]) -> @client.TestResponse
 pub async fn Client::put(Self, String, body? : Bytes, headers? : Array[(String, String)]) -> @client.TestResponse
@@ -73,11 +75,11 @@ pub struct Session {
 pub async fn Session::close(Self, status? : Int32, reason? : String) -> Unit
 pub async fn Session::receive(Self, timeout? : Int32) -> @ws.WsMessage
 pub async fn Session::receive_bytes(Self, timeout? : Int32) -> Bytes
-pub async fn Session::receive_json(Self, timeout? : Int32) -> Json
+pub async fn Session::receive_json(Self, timeout? : Int32) -> @json.Json
 pub async fn Session::receive_text(Self, timeout? : Int32) -> String
 pub async fn Session::send(Self, @ws.WsMessage) -> Unit
 pub async fn Session::send_bytes(Self, Bytes) -> Unit
-pub async fn Session::send_json(Self, Json) -> Unit
+pub async fn Session::send_json(Self, @json.Json) -> Unit
 pub async fn Session::send_text(Self, String) -> Unit
 
 // Type aliases

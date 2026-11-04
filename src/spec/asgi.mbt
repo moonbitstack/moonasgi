@@ -13,10 +13,11 @@ pub(all) enum Scope {
 /// (`"3.0"`) and the `spec_version` of the concrete http / websocket / lifespan
 /// sub-spec the server implements. Applications negotiate optional behaviour
 /// against `spec_version` with `at_least`.
+#derive(Eq)
 pub(all) struct AsgiVersion {
   version : String
   spec_version : String
-} derive(Eq)
+}
 
 ///|
 /// The default ASGI handshake: protocol `3.0`, sub-spec `2.5` (the current
@@ -86,6 +87,7 @@ pub fn AsgiVersion::at_least(
 /// scope's `extensions` only when the connection is TLS-terminated by the
 /// server. Certificates are PEM text; `tls_version` / `cipher_suite` are the
 /// numeric IANA identifiers, `None` when the server does not expose them.
+#derive(Eq)
 pub(all) struct TlsExtension {
   server_cert : String?
   client_cert_chain : Array[String]
@@ -93,7 +95,7 @@ pub(all) struct TlsExtension {
   client_cert_error : String?
   tls_version : Int32?
   cipher_suite : Int32?
-} derive(Eq)
+}
 
 ///|
 /// The scope's `extensions` map, modelled as typed capability flags plus the
@@ -103,6 +105,7 @@ pub(all) struct TlsExtension {
 /// `HttpResponseEarlyHint` / `HttpResponseTrailers` /
 /// `WebSocketHttpResponseStart`, exactly as an ASGI app tests
 /// `"http.response.push" in scope["extensions"]`.
+#derive(Eq)
 pub(all) struct Extensions {
   tls : TlsExtension?
   http_response_push : Bool
@@ -116,7 +119,7 @@ pub(all) struct Extensions {
   // agreed upon between servers and applications", so the set cannot be closed:
   // a server advertises its own here and an application looks it up by name.
   custom : Map[String, Json]
-} derive(Eq)
+}
 
 ///|
 /// No extensions advertised: every capability off, no TLS data. The starting
@@ -363,6 +366,7 @@ pub fn LifespanScope::new(
 /// lifespan message sets in both directions, including the standard extension
 /// messages (server push, path-send, zero-copy send, response trailers, early
 /// hints, debug, and WebSocket denial with a full HTTP response).
+#derive(Eq, Debug)
 pub(all) enum Event {
   HttpRequest(body~ : Bytes, more_body~ : Bool)
   HttpDisconnect
@@ -428,7 +432,7 @@ pub(all) enum Event {
   // application agree on their own — "users are free to invent their own message
   // types", e.g. `mychat.message` — so neither direction can be a closed set.
   Other(type_~ : String, payload~ : Json)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Pull the next inbound event. The async awaitable an application calls to read

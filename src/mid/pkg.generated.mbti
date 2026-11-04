@@ -3,11 +3,12 @@ package "moonbitstack/moonasgi/mid"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "moonbitstack/moonasgi/spec",
 }
 
 // Values
-pub fn auth(@spec.Scope) -> Json?
+pub fn auth(@spec.Scope) -> @json.Json?
 
 pub let body_limit : BodyLimit
 
@@ -21,13 +22,13 @@ pub let proxy_headers : ProxyHeaders
 
 pub let server_errors : ServerErrors
 
-pub fn session(@spec.Scope) -> Map[String, Json]
+pub fn session(@spec.Scope) -> Map[String, @json.Json]
 
 pub fn stack(Array[&Layer], async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 
 pub let trusted_hosts : TrustedHosts
 
-pub fn user(@spec.Scope) -> Json?
+pub fn user(@spec.Scope) -> @json.Json?
 
 // Errors
 
@@ -43,9 +44,10 @@ pub(all) struct BackendFn((@spec.Scope) -> Identity)
 pub fn BackendFn::authenticate(Self, @spec.Scope) -> Identity
 pub impl Backend for BackendFn
 
+#derive(Eq, @debug.Debug)
 pub(all) struct BodyLimit {
   limit : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn BodyLimit::equal(Self, Self) -> Bool
 pub fn BodyLimit::new(limit? : Int32) -> Self
 pub fn BodyLimit::not_equal(Self, Self) -> Bool
@@ -53,6 +55,7 @@ pub fn BodyLimit::to_repr(Self) -> @debug.Repr
 pub fn BodyLimit::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for BodyLimit
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Cors {
   origins : Array[String]
   origin_regex : String?
@@ -61,7 +64,7 @@ pub(all) struct Cors {
   credentials : Bool
   expose : Array[String]
   max_age : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Cors::equal(Self, Self) -> Bool
 pub fn Cors::new(origins? : Array[String], origin_regex? : String, methods? : Array[String], headers? : Array[String], credentials? : Bool, expose? : Array[String], max_age? : Int32) -> Self
 pub fn Cors::not_equal(Self, Self) -> Bool
@@ -69,10 +72,11 @@ pub fn Cors::to_repr(Self) -> @debug.Repr
 pub fn Cors::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for Cors
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Gzip {
   minimum : Int32
   level : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Gzip::equal(Self, Self) -> Bool
 pub fn Gzip::new(minimum? : Int32, level? : Int32) -> Self
 pub fn Gzip::not_equal(Self, Self) -> Bool
@@ -80,8 +84,9 @@ pub fn Gzip::to_repr(Self) -> @debug.Repr
 pub fn Gzip::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for Gzip
 
+#derive(Eq, @debug.Debug)
 pub(all) struct HttpsRedirect {
-} derive(Eq, @debug.Debug)
+}
 pub fn HttpsRedirect::equal(Self, Self) -> Bool
 pub fn HttpsRedirect::new() -> Self
 pub fn HttpsRedirect::not_equal(Self, Self) -> Bool
@@ -89,19 +94,21 @@ pub fn HttpsRedirect::to_repr(Self) -> @debug.Repr
 pub fn HttpsRedirect::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for HttpsRedirect
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Identity {
-  user : Json?
-  auth : Json?
-} derive(Eq, @debug.Debug)
+  user : @json.Json?
+  auth : @json.Json?
+}
 pub fn Identity::anonymous() -> Self
 pub fn Identity::equal(Self, Self) -> Bool
 pub fn Identity::not_equal(Self, Self) -> Bool
-pub fn Identity::of(Json) -> Self
+pub fn Identity::of(@json.Json) -> Self
 pub fn Identity::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ProxyHeaders {
   trusted : Array[String]
-} derive(Eq, @debug.Debug)
+}
 pub fn ProxyHeaders::equal(Self, Self) -> Bool
 pub fn ProxyHeaders::new(trusted? : Array[String]) -> Self
 pub fn ProxyHeaders::not_equal(Self, Self) -> Bool
@@ -131,10 +138,11 @@ pub fn Sessions::new(secret~ : Bytes, cookie? : String, max_age? : Int32?, path?
 pub fn Sessions::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for Sessions
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TrustedHosts {
   hosts : Array[String]
   www_redirect : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn TrustedHosts::equal(Self, Self) -> Bool
 pub fn TrustedHosts::new(hosts? : Array[String], www_redirect? : Bool) -> Self
 pub fn TrustedHosts::not_equal(Self, Self) -> Bool

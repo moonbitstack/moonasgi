@@ -3,6 +3,7 @@
 /// PEP 3333): the CGI variables as fields, the request headers, the body read in
 /// full, and the URL scheme. `to_map` gives the same under the CGI names, for
 /// code that reads them by key.
+#derive(Eq, Debug)
 pub(all) struct Environ {
   request_method : String
   // Where the application is mounted: the ASGI `root_path`.
@@ -20,7 +21,7 @@ pub(all) struct Environ {
   headers : Array[(String, String)]
   url_scheme : String
   input : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Environ with Eq::{equal, not_equal}

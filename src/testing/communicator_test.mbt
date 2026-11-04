@@ -1,5 +1,6 @@
 ///|
-suberror Boom derive(Eq)
+#derive(Eq)
+suberror Boom
 
 ///|
 /// The error `f` raises; fails the test if it returns.
