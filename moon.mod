@@ -1,6 +1,6 @@
 name = "moonbitstack/moonasgi"
 
-version = "0.10.5"
+version = "0.10.6"
 
 readme = "README.md"
 
@@ -43,11 +43,11 @@ keywords = [
 description = "ASGI 3.0 for MoonBit: the interface between servers and frameworks."
 
 import {
-  "moonbitstack/moonzip@0.3.2",
+  "moonbitstack/moonzip@0.3.6",
   "moonbitlang/async@0.22.5",
-  "moonbitstack/moonbase@0.4.2",
-  "moonbitstack/mooncrypt@0.4.8",
-  "moonbitstack/moondate@0.1.2",
-  "moonbitstack/moonregex@0.1.2",
-  "moonbitstack/moonurl@0.2.3",
+  "moonbitstack/moonbase@0.4.3",
+  "moonbitstack/mooncrypt@0.4.10",
+  "moonbitstack/moondate@0.1.4",
+  "moonbitstack/moonregex@0.1.3",
+  "moonbitstack/moonurl@0.2.5",
 }
