@@ -78,6 +78,8 @@ def docs_of(folder):
             if stripped.startswith("///"):
                 pending.append(stripped[3:].strip())
                 continue
+            if stripped.startswith("#"):
+                continue
             m = DECL.match(line)
             if m:
                 name = m.group(2)
