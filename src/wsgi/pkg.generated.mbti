@@ -9,8 +9,6 @@ import {
 // Values
 pub fn to_asgi((Environ, (String, Array[(String, String)]) -> (Bytes) -> Unit) -> Iter[Bytes] raise) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 
-pub fn to_wsgi(async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> (Environ, (String, Array[(String, String)]) -> (Bytes) -> Unit) -> Iter[Bytes] raise
-
 // Errors
 
 // Types and methods

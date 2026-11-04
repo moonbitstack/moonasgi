@@ -115,11 +115,3 @@ async test "a WebSocket is declined and the lifespan answered" {
     assert_true(c.receive() is LifespanShutdownComplete)
   })
 }
-
-///|
-/// The reverse adapter is a signature waiting for a runtime: it stops at the call
-/// rather than at the end of a request that could never finish.
-test "panic to_wsgi refuses until the runtime has a reentrant loop" {
-  let app : @spec.AsgiApp = fn(_scope, _receive, _send) { () }
-  ignore(@wsgi.to_wsgi(app))
-}

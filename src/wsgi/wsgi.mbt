@@ -47,27 +47,6 @@ pub fn to_asgi(app : WsgiApp) -> @spec.AsgiApp {
 }
 
 ///|
-/// The other direction: an ASGI application as a WSGI callable, for a service
-/// that has one and a deployment that only speaks the older protocol.
-///
-/// It is not implemented. An asynchronous application is completed by an event
-/// loop, and a synchronous call has no loop of its own to hand it: the loop would
-/// have to be entered again while it is already running — reentrant — and the
-/// runtime this package builds on does not offer that yet. The signature is the
-/// one callers will bind to, so it stays; calling it stops immediately with the
-/// reason rather than returning a body that could never be produced.
-pub fn to_wsgi(app : @spec.AsgiApp) -> WsgiApp {
-  // todo: drive `app` over a request materialised from the environment, with a
-  // `receive` that hands the body over once and a `send` that feeds
-  // `start_response` and the body iterator, as soon as moonbitlang/async can run
-  // a loop nested inside a running one.
-  ignore(app)
-  abort(
-    "to_wsgi: an asynchronous application cannot be run inside a synchronous call until the async runtime offers a reentrant event loop",
-  )
-}
-
-///|
 async fn serve(
   app : WsgiApp,
   hs : @spec.HttpScope,

@@ -227,10 +227,6 @@ let app : @moonasgi.AsgiApp = @wsgi.to_asgi(legacy)
 
 `Environ` carries the CGI variables as fields, and `to_map` gives them under their usual names. The request body is read before the application runs; each chunk it yields is sent as it comes.
 
-The other direction, `to_wsgi`, carries its signature and refuses: running an
-asynchronous application inside a synchronous call needs an event loop that can
-be entered while it is already running, and the runtime has none yet.
-
 ## Extensions
 
 The optional parts of the specification are typed, not stringly keyed: `http.response.push`, `pathsend`, `zerocopysend`, `early_hint`, `debug`, `trailers`, `websocket.http.response`, and `tls`. A server advertises them on the scope's `extensions`, and an application checks the flag before emitting the matching event. An extension the specification does not name goes in the same map, by name.
