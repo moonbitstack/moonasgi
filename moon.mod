@@ -49,5 +49,6 @@ import {
   "moonbitstack/mooncrypt@0.4.11",
   "moonbitstack/moondate@0.1.4",
   "moonbitstack/moonregex@0.1.3",
+  "moonbitstack/moonward@0.2.1",
   "moonbitstack/moonurl@0.2.5",
 }

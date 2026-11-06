@@ -12,6 +12,7 @@ import {
   "moonbitstack/mooncrypt/hash/sha1",
   "moonbitstack/mooncrypt/mac/hmac",
   "moonbitstack/moonregex",
+  "moonbitstack/moonward",
   "moonbitstack/moonzip/gzip",
   "moonbitlang/core/cmp",
   "moonbitlang/core/encoding/utf8",

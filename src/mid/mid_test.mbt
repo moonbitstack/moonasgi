@@ -651,3 +651,80 @@ async test "cors: a matching origin with credentials is echoed" {
   )
   assert_eq(value(headers, "access-control-allow-credentials"), Some("true"))
 }
+
+///|
+/// A rate limit on a clock the test moves by hand, in nanoseconds.
+fn limited(
+  now : Ref[Int64],
+  rate~ : Double = 2.0,
+  burst~ : Double = 3.0,
+  clients~ : Int32 = 100,
+) -> @spec.AsgiApp {
+  @mid.RateLimit::new(rate~, burst~, clients~, clock=() => now.val).wrap(hello)
+}
+
+///|
+async test "rate limit: a burst passes, the next request waits, and refill lets one more in" {
+  let now = Ref(0L)
+  let app = limited(now)
+  for _ in 0..<3 {
+    let (status, _) = start(drive(app, from_peer("10.0.0.1", [])))
+    assert_eq(status, 200)
+  }
+  let (status, headers) = start(drive(app, from_peer("10.0.0.1", [])))
+  assert_eq(status, 429)
+  // Half a second to the next token, which Retry-After rounds up to one.
+  assert_true(headers.contains(("retry-after", "1")))
+  now.val = 500_000_000L
+  let (status, _) = start(drive(app, from_peer("10.0.0.1", [])))
+  assert_eq(status, 200)
+}
+
+///|
+async test "rate limit: each client draws from its own bucket" {
+  let now = Ref(0L)
+  let app = limited(now, burst=1.0)
+  assert_eq(start(drive(app, from_peer("10.0.0.1", []))).0, 200)
+  assert_eq(start(drive(app, from_peer("10.0.0.1", []))).0, 429)
+  assert_eq(start(drive(app, from_peer("10.0.0.2", []))).0, 200)
+}
+
+///|
+async test "rate limit: a request without a key is not limited" {
+  let now = Ref(0L)
+  let app = @mid.RateLimit::new(burst=1.0, key=_ => None, clock=() => now.val).wrap(
+    hello,
+  )
+  for _ in 0..<5 {
+    assert_eq(start(drive(app, from_peer("10.0.0.1", []))).0, 200)
+  }
+}
+
+///|
+async test "rate limit: a full table drops a refilled client before an exhausted one" {
+  let now = Ref(0L)
+  let app = limited(now, rate=1.0, burst=1.0, clients=2)
+  // B joins first and A second; A then sits still while B spends again at 1.5 s.
+  assert_eq(start(drive(app, from_peer("10.0.0.2", []))).0, 200)
+  now.val = 100_000_000L
+  assert_eq(start(drive(app, from_peer("10.0.0.1", []))).0, 200)
+  now.val = 1_500_000_000L
+  assert_eq(start(drive(app, from_peer("10.0.0.2", []))).0, 200)
+  // At 2 s C needs room. A's bucket is full again and B's is half empty, so A goes
+  // although B was tracked longer, and B is still refused.
+  now.val = 2_000_000_000L
+  assert_eq(start(drive(app, from_peer("10.0.0.3", []))).0, 200)
+  assert_eq(start(drive(app, from_peer("10.0.0.2", []))).0, 429)
+}
+
+///|
+async test "rate limit: a full table of spent clients drops the one tracked longest" {
+  let now = Ref(0L)
+  let app = limited(now, rate=1.0, burst=1.0, clients=2)
+  assert_eq(start(drive(app, from_peer("10.0.0.1", []))).0, 200)
+  assert_eq(start(drive(app, from_peer("10.0.0.2", []))).0, 200)
+  assert_eq(start(drive(app, from_peer("10.0.0.3", []))).0, 200)
+  // A was dropped to make room, so it starts again with a full bucket; B was kept.
+  assert_eq(start(drive(app, from_peer("10.0.0.1", []))).0, 200)
+  assert_eq(start(drive(app, from_peer("10.0.0.3", []))).0, 429)
+}

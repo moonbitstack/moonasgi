@@ -12,6 +12,8 @@ pub fn auth(@spec.Scope) -> @json.Json?
 
 pub let body_limit : BodyLimit
 
+pub fn client_address(@spec.Scope) -> String?
+
 pub let cors : Cors
 
 pub let gzip : Gzip
@@ -19,6 +21,8 @@ pub let gzip : Gzip
 pub let https_redirect : HttpsRedirect
 
 pub let proxy_headers : ProxyHeaders
+
+pub let rate_limit : RateLimit
 
 pub let server_errors : ServerErrors
 
@@ -115,6 +119,17 @@ pub fn ProxyHeaders::not_equal(Self, Self) -> Bool
 pub fn ProxyHeaders::to_repr(Self) -> @debug.Repr
 pub fn ProxyHeaders::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for ProxyHeaders
+
+pub(all) struct RateLimit {
+  rate : Double
+  burst : Double
+  clients : Int32
+  key : (@spec.Scope) -> String?
+  clock : () -> Int64
+}
+pub fn RateLimit::new(rate? : Double, burst? : Double, clients? : Int32, key? : (@spec.Scope) -> String?, clock? : () -> Int64) -> Self
+pub fn RateLimit::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
+pub impl Layer for RateLimit
 
 pub(all) struct ServerErrors {
   debug : Bool

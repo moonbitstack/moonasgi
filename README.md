@@ -138,6 +138,7 @@ Startup seeds `scope.state` in place. A server copies that map onto every reques
 | `https_redirect` | `http` to `https`, `ws` to `wss`, by 307 | — |
 | `proxy_headers` | Restores the client and scheme from a trusted proxy | trusts `127.0.0.1` |
 | `body_limit` | Answers 413 over the limit, by length or as it streams | 1 MiB |
+| `rate_limit` | Answers 429 with `Retry-After` when a client's token bucket is empty | 2 a second, bursts of 8, by client address |
 | `server_errors` | A 500 when the answer has not started, then the error on | no detail |
 | `sessions` | Signs the session into a cookie, and reads it back | 14 days, `SameSite=Lax` |
 | `auth` | Resolves an identity once per connection, onto the scope | no backend |
