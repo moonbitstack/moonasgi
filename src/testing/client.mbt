@@ -534,7 +534,8 @@ pub async fn[X] Client::lifespan(self : Client, body : async () -> X) -> X {
       LifespanStartupFailed(message~) => raise Startup(message)
       e => raise Unexpected(e)
     }
-    errdefer (shutdown(c) catch { _ => () })
+    // A cancelled body still owes the application its shutdown, so the shutdown itself is not cancelled.
+    errdefer (@async.protect_from_cancel(() => shutdown(c)) catch { _ => () })
     let x = body()
     shutdown(c)
     x
