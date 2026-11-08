@@ -62,6 +62,15 @@ jobs:
         run: |
           moon info --target all && git -c core.autocrlf=false diff --ignore-cr-at-eol --exit-code
 
+      - name: the skills are valid
+        if: runner.os == 'Linux'
+        run: |
+          for dir in docs/skills/*/; do
+            case "$dir" in *CHANGE-ME*) continue ;; esac
+            [ -f "$dir/SKILL.md" ] || continue
+            pipx run --spec skills-ref agentskills validate "$dir"
+          done
+
       - name: the API page follows the interfaces
         run: |
           python3 scripts/gen_api.py || python scripts/gen_api.py
