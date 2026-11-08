@@ -53,6 +53,7 @@
       <a class="side-link" href="#websocket">WebSocket</a>
       <a class="side-link" href="#lifespan">Lifespan</a>
       <a class="side-link" href="#middleware">Middleware</a>
+      <a class="side-link" href="#session">Sessions and identity</a>
       <a class="side-link" href="#dispatch">Several applications</a>
       <a class="side-link" href="#wsgi">Synchronous applications</a>
       <a class="side-link" href="#testing">Testing an application</a>
@@ -177,9 +178,9 @@ for event in out {
   @moonasgi.StreamingResponse::new(
     status=200,
     headers=[("content-type", "text/event-stream")],
-    chunks=[b"data: 233\n\n", b"data: 666\n\n", b"data: done\n\n"],
-    trailers=[("x-digest", "heke1228")],
-    early_hints=[["</a.css>; rel=preload"], ["</b.js>; rel=preload"]],
+    chunks=[b"data: 233\n\n", b"data: done\n\n"],
+    trailers=[("x-digest", "9f2c")],
+    early_hints=[["</style.css>; rel=preload"]],
   )
 }
 let client = @moonasgi.TestClient::from_stream(feed)
@@ -190,13 +191,11 @@ println("\{response.early_hints.length()} early hints")</code></pre>
       </div>
       <div class="out-block"><span class="out-label">output</span>data: 233
 
-data: 666
-
 data: done
 
 
-heke1228
-2 early hints</div>
+9f2c
+1 early hints</div>
       <p>The client reassembles the chunks into one body and keeps the trailers and hints apart, so a test can assert on any of them.</p>
 
       <h2 id="extensions">Extensions</h2>
@@ -249,7 +248,7 @@ println("accepted=\{session.accepted} texts=\{session.texts().join(" ")}")</code
         <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
         <pre data-lang="moonbit"><code>let lifecycle = @moonasgi.LifespanHandler::new(
   on_startup=fn(scope) {
-    scope.state["greeting"] = Json::string("Bonjour")
+    scope.state["db_pool"] = Json::string("pool://main")
     Complete
   },
 )
@@ -265,14 +264,14 @@ for reply in replies {
     _ => "other"
   })
 }
-println(match scope.state.get("greeting") {
+println(match scope.state.get("db_pool") {
   Some(Json::String(s)) => s
   _ => "none"
 })</code></pre>
       </div>
       <div class="out-block"><span class="out-label">output</span>startup.complete
 shutdown.complete
-Bonjour</div>
+pool://main</div>
       <p>A startup that returns <code>Failed(message)</code> ends the boot: no shutdown follows, and the message is what the server reports.</p>
 
       <h2 id="middleware">Middleware</h2>
@@ -315,7 +314,7 @@ stacked(
 println("layers ran \{hits.val} times")</code></pre>
       </div>
       <div class="out-block"><span class="out-label">output</span>layers ran 1 times</div>
-      <p>Nine ship with the package: <code>server_errors</code>, <code>trusted_hosts</code>, <code>cors</code>, <code>gzip</code>, <code>https_redirect</code>, <code>proxy_headers</code>, <code>body_limit</code>, <code>sessions</code>, <code>auth</code>. Each is a record, so a preset can be adjusted in place: <code>{ ..@mid.gzip, level: 1 }</code>. <code>cors</code> takes an <code>origin_regex</code> as well as a list, for a site whose origins cannot be listed.</p>
+      <p>Ten ship with the package: <code>server_errors</code>, <code>trusted_hosts</code>, <code>cors</code>, <code>gzip</code>, <code>https_redirect</code>, <code>proxy_headers</code>, <code>body_limit</code>, <code>rate_limit</code>, <code>sessions</code>, <code>auth</code>. Each is a record, so a preset can be adjusted in place: <code>{ ..@mid.gzip, level: 1 }</code>. <code>cors</code> takes an <code>origin_regex</code> as well as a list, for a site whose origins cannot be listed.</p>
 
       <h2 id="session">Sessions and identity</h2>
       <p>A session that lives in the cookie needs no store on the server: the data travels with the client, signed, and the request that carries it gets it back. <code>session</code> is the map a handler reads and writes — the same map the layer writes back into the answer.</p>
