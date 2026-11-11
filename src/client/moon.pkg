@@ -7,8 +7,8 @@ import {
   "moonbitstack/moonasgi/spec",
   "moonbitstack/moonasgi/http",
   "moonbitstack/moonasgi/ws",
+  "moonbitstack/moonjson",
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/json",
 }
 
 import {

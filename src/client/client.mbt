@@ -80,10 +80,11 @@ pub fn TestResponse::text(self : TestResponse) -> String {
 }
 
 ///|
-/// The response body parsed as JSON. Raises `@json.ParseError` if the body is
-/// not valid JSON, mirroring a real client's `.json()`.
+/// The response body parsed as JSON, strictly: comments, trailing commas and
+/// unquoted keys are not JSON. Raises `@moonjson.Refused` if the body is not
+/// valid JSON, mirroring a real client's `.json()`.
 pub fn TestResponse::json(self : TestResponse) -> Json raise {
-  @json.parse(@utf8.decode_lossy(self.body[:]))
+  @moonjson.loads(@utf8.decode_lossy(self.body[:]), @moonjson.strict)
 }
 
 ///|

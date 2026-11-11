@@ -8,6 +8,7 @@ import {
   "moonbitstack/moonasgi/ws",
   "moonbitstack/moonasgi/client",
   "moonbitstack/moonasgi/cookie",
+  "moonbitstack/moonjson",
   "moonbitstack/moonurl",
   "moonbitlang/async",
   "moonbitlang/core/env",
@@ -15,7 +16,6 @@ import {
   "moonbitlang/async/cond_var",
   "moonbitlang/core/deque",
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/json",
 }
 
 import {

@@ -34,7 +34,7 @@ pub async fn Session::send_bytes(self : Session, bytes : Bytes) -> Unit {
 ///|
 /// Send `value` serialised as a text message.
 pub async fn Session::send_json(self : Session, value : Json) -> Unit {
-  self.send(Text(value.stringify()))
+  self.send(Text(@moonjson.dumps(value)))
 }
 
 ///|
@@ -74,8 +74,8 @@ pub async fn Session::receive_bytes(self : Session, timeout? : Int32) -> Bytes {
 /// The next message parsed as JSON; text or binary.
 pub async fn Session::receive_json(self : Session, timeout? : Int32) -> Json {
   match self.receive(timeout?) {
-    Text(text) => @json.parse(text)
-    Binary(bytes) => @json.parse(@utf8.decode(bytes))
+    Text(text) => @moonjson.loads(text, @moonjson.strict)
+    Binary(bytes) => @moonjson.loads(@utf8.decode(bytes), @moonjson.strict)
   }
 }
 

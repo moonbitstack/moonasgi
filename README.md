@@ -508,7 +508,7 @@ assert_eq(stepped, ["http.response.start", "http.response.body"])
 | `…/testing` | A real `AsgiApp` driven in-process, event by event |
 | `…/conform` | The conformance harness and the ordering rules |
 
-The seam itself has no dependencies. `mid` uses a compression package, a regular expression engine and a hash; `testing` and `dispatch` use an async runtime for their event loop.
+The seam carries no transport. `http` writes a JSON reply with the family's JSON codec; `mid` adds a compression package, a regular expression engine and a hash; `testing` and `dispatch` add an async runtime for their event loop.
 
 ## Examples
 

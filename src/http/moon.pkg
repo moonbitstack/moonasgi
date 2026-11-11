@@ -4,6 +4,7 @@
 // https://asgi.readthedocs.io/en/latest/specs/www.html
 import {
   "moonbitstack/moonasgi/spec",
+  "moonbitstack/moonjson",
   "moonbitlang/core/encoding/utf8",
 }
 

@@ -11,6 +11,7 @@ import {
   "moonbitstack/moonbase/base64",
   "moonbitstack/mooncrypt/hash/sha1",
   "moonbitstack/mooncrypt/mac/hmac",
+  "moonbitstack/moonjson",
   "moonbitstack/moonregex",
   "moonbitstack/moonward",
   "moonbitstack/moonzip/gzip",

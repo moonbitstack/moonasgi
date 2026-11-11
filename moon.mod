@@ -52,6 +52,7 @@ import {
   "moonbitstack/moonzip@0.3.8",
   "moonbitlang/async@0.22.5",
   "moonbitstack/moonbase@0.4.4",
+  "moonbitstack/moonjson@0.4.4",
   "moonbitstack/mooncrypt@0.4.13",
   "moonbitstack/moondate@0.1.6",
   "moonbitstack/moonregex@0.1.5",

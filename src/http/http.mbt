@@ -164,13 +164,13 @@ pub fn Response::text(status~ : Int32 = 200, body : String) -> Response {
 }
 
 ///|
-/// An `application/json` response whose body is the UTF-8 encoding of `value`
-/// serialised with `Json::stringify`. The ergonomic constructor for a JSON reply.
+/// An `application/json` response whose body is the UTF-8 encoding of `value`.
+/// The ergonomic constructor for a JSON reply.
 pub fn Response::json(status~ : Int32 = 200, value : Json) -> Response {
   {
     status,
     headers: [("content-type", "application/json")],
-    body: @utf8.encode(value.stringify()),
+    body: @utf8.encode(@moonjson.dumps(value)),
   }
 }
 

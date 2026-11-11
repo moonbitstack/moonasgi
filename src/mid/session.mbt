@@ -184,7 +184,7 @@ fn Sessions::read(
     text => text
   }
   match
-    (try @json.parse(text) catch {
+    (try @moonjson.loads(text, @moonjson.strict) catch {
       _ => return Map([])
     } noraise {
       value => value
@@ -208,7 +208,7 @@ fn Sessions::answer(
     // base64url, as the cookie value's own alphabet allows and as every dotted
     // value must be: the signature is the field after the last dot, and a JSON
     // text may contain dots of its own.
-    let value = base64url(@utf8.encode(Json::object(data).stringify()))
+    let value = base64url(@utf8.encode(@moonjson.dumps(Json::object(data))))
     let value = self.sign(value, now~)
     return Some(
       @cookie.SetCookie::new(
