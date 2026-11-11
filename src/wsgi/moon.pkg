@@ -11,4 +11,5 @@ import {
   "moonbitstack/moonasgi/testing",
   "moonbitstack/moonasgi/dispatch",
   "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
 } for "test"
