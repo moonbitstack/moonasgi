@@ -126,10 +126,26 @@ pub(all) struct RateLimit {
   clients : Int32
   key : (@spec.Scope) -> String?
   clock : () -> Int64
+  headers : Bool
+  name : String
 }
-pub fn RateLimit::new(rate? : Double, burst? : Double, clients? : Int32, key? : (@spec.Scope) -> String?, clock? : () -> Int64) -> Self
+pub fn RateLimit::new(rate? : Double, burst? : Double, clients? : Int32, key? : (@spec.Scope) -> String?, clock? : () -> Int64, headers? : Bool, name? : String) -> Self
 pub fn RateLimit::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for RateLimit
+
+#derive(Eq, @debug.Debug)
+pub(all) struct RateLimitPolicy {
+  name : String
+  quota : Int64
+  window : Int64?
+  unit : String?
+  key : Bytes?
+  extra : Array[String]
+}
+pub fn RateLimitPolicy::encode(Self) -> String
+pub fn RateLimitPolicy::equal(Self, Self) -> Bool
+pub fn RateLimitPolicy::not_equal(Self, Self) -> Bool
+pub fn RateLimitPolicy::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ServerErrors {
   debug : Bool
@@ -138,6 +154,19 @@ pub(all) struct ServerErrors {
 pub fn ServerErrors::new(debug? : Bool, handler? : (Error) -> (Int32, Array[(String, String)], String)) -> Self
 pub fn ServerErrors::wrap(Self, async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit) -> async (@spec.Scope, async () -> @spec.Event, async (@spec.Event) -> Unit) -> Unit
 pub impl Layer for ServerErrors
+
+#derive(Eq, @debug.Debug)
+pub(all) struct ServiceLimit {
+  name : String
+  remaining : Int64
+  window : Int64?
+  key : Bytes?
+  extra : Array[String]
+}
+pub fn ServiceLimit::encode(Self) -> String
+pub fn ServiceLimit::equal(Self, Self) -> Bool
+pub fn ServiceLimit::not_equal(Self, Self) -> Bool
+pub fn ServiceLimit::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Sessions {
   secret : Bytes

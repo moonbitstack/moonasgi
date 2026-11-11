@@ -53,6 +53,7 @@
       <a class="side-link" href="#websocket">WebSocket</a>
       <a class="side-link" href="#lifespan">Lifespan</a>
       <a class="side-link" href="#middleware">Middleware</a>
+      <a class="side-link" href="#quota">Telling a client what is left</a>
       <a class="side-link" href="#session">Sessions and identity</a>
       <a class="side-link" href="#dispatch">Several applications</a>
       <a class="side-link" href="#wsgi">Synchronous applications</a>
@@ -73,7 +74,7 @@
     <article class="page">
       <p class="eyebrow">Guide</p>
       <h1>A guided tour</h1>
-      <p class="lede">Fourteen steps, from one handler to a server carrying several applications. Each step is a program you can run, and the output under it is what it printed.</p>
+      <p class="lede">Fifteen steps, from one handler to a server carrying several applications. Each step is a program you can run, and the output under it is what it printed.</p>
 
       <h2 id="install">Install</h2>
       <p>Add the package to a project. There is nothing else to configure: no transport lives in here.</p>
@@ -315,6 +316,48 @@ println("layers ran \{hits.val} times")</code></pre>
       </div>
       <div class="out-block"><span class="out-label">output</span>layers ran 1 times</div>
       <p>Ten ship with the package: <code>server_errors</code>, <code>trusted_hosts</code>, <code>cors</code>, <code>gzip</code>, <code>https_redirect</code>, <code>proxy_headers</code>, <code>body_limit</code>, <code>rate_limit</code>, <code>sessions</code>, <code>auth</code>. Each is a record, so a preset can be adjusted in place: <code>{ ..@mid.gzip, level: 1 }</code>. <code>cors</code> takes an <code>origin_regex</code> as well as a list, for a site whose origins cannot be listed.</p>
+
+      <h2 id="quota">Telling a client what is left</h2>
+      <p>A client that knows its quota can slow down before it is refused. <code>rate_limit</code> says so in the two fields of <code>draft-ietf-httpapi-ratelimit-headers</code> when <code>headers</code> is on: <code>RateLimit-Policy</code> for what the policy grants, <code>RateLimit</code> for what this request leaves. Both are off by default, since they cost a header pair on every response.</p>
+      <div class="code">
+        <div class="code-head"><span class="file">moonbit</span><button class="copy" data-copy="">copy</button></div>
+        <pre data-lang="moonbit"><code>let now = Ref(0L)
+let app : @moonasgi.AsgiApp = async fn(_, receive, send) {
+  ignore(receive())
+  send(HttpResponseStart(status=200, headers=[], trailers=false))
+  send(HttpResponseBody(body=b"hello", more_body=false))
+}
+let limited = @mid.RateLimit::new(
+  rate=2.0,
+  burst=8.0,
+  headers=true,
+  clock=fn() { now.val },
+).wrap(app)
+let answer : Array[@spec.Event] = []
+limited(
+  Http(
+    @spec.HttpScope::new(
+      http_method="GET",
+      path="/",
+      client=("203.0.113.7", 50000),
+    ),
+  ),
+  async fn() { HttpRequest(body=b"", more_body=false) },
+  async fn(event) { answer.push(event) },
+)
+for event in answer {
+  if event is HttpResponseStart(headers~, ..) {
+    for header in headers {
+      if header.0.has_prefix("ratelimit") {
+        println("\{header.0}: \{header.1}")
+      }
+    }
+  }
+}</code></pre>
+      </div>
+      <div class="out-block"><span class="out-label">output</span>ratelimit-policy: "default";q=8;w=4
+ratelimit: "default";r=7;t=1</div>
+      <p>Eight requests over the four seconds the bucket takes to fill, seven left after this one, and half a second before the eighth returns — written as one second, since the field counts whole ones. A refused answer states <code>r=0</code> and the same moment as its <code>Retry-After</code>. The two records behind those lines, <code>RateLimitPolicy</code> and <code>ServiceLimit</code>, encode a field on their own for a server with several policies or a limiter of its own.</p>
 
       <h2 id="session">Sessions and identity</h2>
       <p>A session that lives in the cookie needs no store on the server: the data travels with the client, signed, and the request that carries it gets it back. <code>session</code> is the map a handler reads and writes — the same map the layer writes back into the answer.</p>

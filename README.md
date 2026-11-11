@@ -193,7 +193,7 @@ Startup seeds `scope.state` in place. A server copies that map onto every reques
 | `https_redirect` | `http` to `https`, `ws` to `wss`, by 307 | — |
 | `proxy_headers` | Restores the client and scheme from a trusted proxy | trusts `127.0.0.1` |
 | `body_limit` | Answers 413 over the limit, by length or as it streams | 1 MiB |
-| `rate_limit` | Answers 429 with `Retry-After` when a client's token bucket is empty | 2 a second, bursts of 8, by client address |
+| `rate_limit` | Answers 429 with `Retry-After` when a client's token bucket is empty, and can state the quota in `RateLimit-Policy` and `RateLimit` | 2 a second, bursts of 8, by client address, no quota fields |
 | `server_errors` | A 500 when the answer has not started, then the error on | no detail |
 | `sessions` | Signs the session into a cookie, and reads it back | 14 days, `SameSite=Lax` |
 | `auth` | Resolves an identity once per connection, onto the scope | no backend |
@@ -240,6 +240,67 @@ assert_eq(statuses, [200, 400])
 ```
 
 Each is a record, so a preset can be adjusted in place — `{ ..@mid.gzip, level: 1 }` says the same as `Gzip::new(level=1)`. Your own middleware is a `Wrap`, or a record implementing `Layer`, and stacks with the rest.
+
+### Telling a client what is left
+
+A rate limit can say so in the answer, in the two fields of `draft-ietf-httpapi-ratelimit-headers`: `RateLimit-Policy` for the quota the policy grants, `RateLimit` for what this request leaves of it. It is off by default, since it costs a header pair on every response.
+
+```moonbit
+let limited = @mid.RateLimit::new(rate=2.0, burst=8.0, headers=true)
+
+let announced : Array[(String, String)] = []
+limited.wrap(app)(
+  @moonasgi.Scope::Http(
+    @moonasgi.HttpScope::new(
+      http_method="GET",
+      path="/",
+      client=("203.0.113.7", 50000),
+    ),
+  ),
+  async fn() { @moonasgi.Event::HttpRequest(body=b"", more_body=false) },
+  async fn(event) {
+    if event is @moonasgi.Event::HttpResponseStart(headers~, ..) {
+      for header in headers {
+        if header.0.has_prefix("ratelimit") {
+          announced.push(header)
+        }
+      }
+    }
+  },
+)
+
+assert_eq(announced, [
+  ("ratelimit-policy", "\"default\";q=8;w=4"),
+  ("ratelimit", "\"default\";r=7;t=1"),
+])
+```
+
+Eight requests over the four seconds the bucket takes to fill, seven left after this one, and half a second before the eighth returns — a whole number of seconds, so it is written as one. A refused request is told `r=0` and when a request may pass again, the same moment `Retry-After` names. A bucket that refills in under a second has no window the field can state in whole seconds, so the policy carries the quota alone.
+
+The two records are the items of those fields, and `encode` writes one as the field does. A server with its own limiter, or with several policies, uses them without the middleware:
+
+```moonbit
+let quota : @mid.RateLimitPolicy = {
+  name: "peruser",
+  quota: 100,
+  window: Some(60),
+  unit: None,
+  key: None,
+  extra: [],
+}
+let left : @mid.ServiceLimit = {
+  name: "peruser",
+  remaining: 60,
+  window: Some(58),
+  key: None,
+  extra: [],
+}
+
+assert_eq(quota.encode(), "\"peruser\";q=100;w=60")
+assert_eq(left.encode(), "\"peruser\";r=60;t=58")
+```
+
+A field is a list of items joined with a comma, so a server reporting two policies joins two of them. `key` is a partition key, base64 as the field carries it, and `extra` holds any parameter the specification leaves to the implementation, written as it should appear.
 
 ### Sessions and identity
 
@@ -452,7 +513,7 @@ The seam itself has no dependencies. `mid` uses a compression package, a regular
 ## Examples
 
 <details>
-<summary><b>Twenty programs, one per feature</b></summary>
+<summary><b>Twenty-one programs, one per feature</b></summary>
 
 Each is a runnable package under [`src/examples`](src/examples):
 
@@ -482,6 +543,7 @@ moon run src/examples/00-hello
 | 17 | [`wsgi`](src/examples/17-wsgi) | A synchronous application, mounted |
 | 18 | [`trace`](src/examples/18-trace) | Every event of a request, in order |
 | 19 | [`session`](src/examples/19-session) | A session in a signed cookie, and an identity read from it |
+| 20 | [`quota`](src/examples/20-quota) | A rate limit that states its policy and what is left |
 
 </details>
 

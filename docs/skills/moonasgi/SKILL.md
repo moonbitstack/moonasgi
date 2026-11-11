@@ -122,6 +122,37 @@ let guarded = @mid.stack(
 
 Each preset is a plain value: `{ ..@mid.gzip, level: 1 }` narrows one field and keeps the rest. Your own layer is `@mid.Wrap(wrapper)` around a function, or a record implementing `@mid.Layer`, and it stacks beside the shipped ones.
 
+## Say what a client may still send
+
+A rate limit that answers `429` alone leaves a well-behaved client guessing. `headers=true` adds the two fields of `draft-ietf-httpapi-ratelimit-headers` to every answer: the policy's quota and what this request leaves of it.
+
+```moonbit
+let limited = @mid.RateLimit::new(
+  rate=2.0,
+  burst=8.0,
+  headers=true,
+  name="permin",
+).wrap(app)
+```
+
+That answers `RateLimit-Policy: "permin";q=8;w=4` and `RateLimit: "permin";r=7;t=1`: eight requests over the four seconds the bucket takes to fill, seven left, one second before the next.
+
+A server with its own limiter builds the fields from the two records instead — `@mid.RateLimitPolicy` and `@mid.ServiceLimit`, each with `encode`:
+
+```moonbit
+let policy : @mid.RateLimitPolicy = {
+  name: "peruser",
+  quota: 100,
+  window: Some(60),
+  unit: None,
+  key: None,
+  extra: [],
+}
+assert_eq(policy.encode(), "\"peruser\";q=100;w=60")
+```
+
+A field is a list of items joined with `,`; `unit` is `"content-bytes"` or `"concurrent-requests"` when the quota is not counted in requests, and `key` is a partition key as bytes, written base64.
+
 ## Things that catch people out
 
 - `state` seeded at lifespan startup is copied onto every request and WebSocket scope; writing to `scope.state` from inside a request changes that request only.
@@ -131,3 +162,4 @@ Each preset is a plain value: `{ ..@mid.gzip, level: 1 }` narrows one field and 
 - `send` raises `@spec.Closed` once the connection is gone. A stream that keeps writing after the client leaves will surface it.
 - A `Handler` is lifted by `to_asgi`; anything that needs more than one response event must be written as an `AsgiApp` directly, or returned as a `StreamingResponse`.
 - `dispatch.mount` matches whole segments and rewrites `path`, `raw_path` and `root_path`; the mounted application never sees the prefix in `path`.
+- The quota fields count whole seconds: `t` is until the next request may pass, not until the bucket is full, and a policy whose window is under a second carries no `w` rather than a rounded-up lie.

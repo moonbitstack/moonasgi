@@ -25,6 +25,7 @@ import {
   "moonbitstack/moonasgi/mid",
   "moonbitstack/moonasgi/spec",
   "moonbitstack/moonasgi/cookie",
+  "moonbitstack/moonbase/base64",
   "moonbitstack/moonzip/gzip",
   "moonbitlang/async",
   "moonbitlang/core/encoding/utf8",
@@ -36,6 +37,7 @@ warnings = "-29"
 options(
   targets: {
     "mid_test.mbt": [ "native", "wasm", "js" ],
+    "rate_test.mbt": [ "native", "wasm", "js" ],
     "session_test.mbt": [ "native", "wasm", "js" ],
     "auth_test.mbt": [ "native", "wasm", "js" ],
   },
