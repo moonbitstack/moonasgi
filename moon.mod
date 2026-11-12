@@ -1,6 +1,6 @@
 name = "moonbitstack/moonasgi"
 
-version = "0.11.0"
+version = "0.11.1"
 
 readme = "README.md"
 
@@ -53,7 +53,7 @@ import {
   "moonbitlang/async@0.22.5",
   "moonbitstack/moonbase@0.4.5",
   "moonbitstack/moonjson@0.4.4",
-  "moonbitstack/mooncrypt@0.4.16",
+  "moonbitstack/mooncrypt@0.4.15",
   "moonbitstack/moondate@0.1.7",
   "moonbitstack/moonregex@0.1.6",
   "moonbitstack/moonward@0.2.3",
