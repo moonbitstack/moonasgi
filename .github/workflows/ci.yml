@@ -5,6 +5,10 @@ on:
   push:
     branches:
       - master
+  # Twice a month, so a new toolchain or a dependency's release shows up while nothing is pushed.
+  schedule:
+    - cron: "19 4 1,16 * *"
+  workflow_dispatch:
 
 jobs:
   build:
