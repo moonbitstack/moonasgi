@@ -5,3 +5,6 @@
 .git/
 _build/
 target/
+
+# Examples are read in the repository and run in CI; they do not ship.
+src/examples/
