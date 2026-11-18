@@ -373,14 +373,14 @@ pub(all) enum Event {
   HttpResponseStart(
     status~ : Int32,
     headers~ : Array[(String, String)],
-    trailers~ : Bool
+    trailers~ : Bool,
   )
   HttpResponseBody(body~ : Bytes, more_body~ : Bool)
   // `http.response.trailers` extension: trailing headers sent after the body,
   // only valid when `HttpResponseStart.trailers` was `true`.
   HttpResponseTrailers(
     headers~ : Array[(String, String)],
-    more_trailers~ : Bool
+    more_trailers~ : Bool,
   )
   // `http.response.push` extension: a server-initiated push promise for `path`.
   HttpResponsePush(path~ : String, headers~ : Array[(String, String)])
@@ -395,7 +395,7 @@ pub(all) enum Event {
     fd~ : Int32,
     offset~ : Int32?,
     count~ : Int32?,
-    more_body~ : Bool
+    more_body~ : Bool,
   )
   // `http.response.debug` extension: an out-of-band `info` map a server may log
   // or surface in a debug UI. Carries no protocol meaning and is valid at any
@@ -419,7 +419,7 @@ pub(all) enum Event {
   WebSocketHttpResponseStart(
     status~ : Int32,
     headers~ : Array[(String, String)],
-    trailers~ : Bool
+    trailers~ : Bool,
   )
   WebSocketHttpResponseBody(body~ : Bytes, more_body~ : Bool)
   LifespanStartup
